@@ -1,4 +1,4 @@
-import React from "react";
+import React, { use } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -8,10 +8,20 @@ import BookTickets from "./pages/BookTickets";
 import SeatSelection from "./pages/SeatSelection";
 import BookingSummary from "./pages/BookingSummary";
 import Profile from "./pages/Profile";
-//Auth
+import AdminSignup from "./pages/AdminSignup";
 
 
 function App() {
+
+  const isAuthenticated = () => {
+    return !!localStorage.getItem("token");
+  }
+
+  // const isAdmin = () => {
+  //   const user = JSON.parse(localStorage.getItem("user"));
+  //   return user && user.role === "ADMIN";
+  // }
+
   return (
     <Router>
       <Routes>
@@ -23,9 +33,74 @@ function App() {
         <Route path="/movie/:id/book/seats" element={<SeatSelection />} />
         <Route path="/booking-summary" element={<BookingSummary />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/admin/signup" element={<AdminSignup />} />
       </Routes>
     </Router>
   );
 }
 
 export default App;
+
+
+/**
+
+SAMPLE MOVIES INSERTION SQL:   (NOTES: Movie Description, Reviews - attributes needed)
+
+INSERT INTO movies (movie_name, image_url, genre, language, duration, rating, release_date) VALUES
+('Jurassic World', 'https://m.media-amazon.com/images/I/A1P7N8O3OwL._UF1000,1000_QL80_.jpg', 'ACTION', 'ENGLISH', 124, 7.8, '2015-06-12'),
+('Metro In Dino', 'https://upload.wikimedia.org/wikipedia/en/thumb/6/64/Metro..._In_Dino_poster.jpg/250px-Metro..._In_Dino_poster.jpg', 'ROMANTIC', 'HINDI', 145, 7.5, '2024-11-29'),
+('Taare Zameen Par', 'https://miro.medium.com/v2/resize:fit:736/1*SB0FRxOlWv_Tz9nH3BWueQ.jpeg', 'DRAMA', 'HINDI', 165, 8.4, '2007-12-21'),
+('Formula 1', 'https://upload.wikimedia.org/wikipedia/en/4/44/F1_The_Movie_Theatrical_Poster.jpg', 'SPORTS', 'ENGLISH', 130, 8.0, '2025-06-25'),
+('Adipurush', 'https://m.media-amazon.com/images/M/MV5BMjA2ODRkMGUtNzUxNC00MmM5LTk3YjQtNTkxNTFlNzFiMjNiXkEyXkFqcGc@._V1_.jpg', 'HISTORICAL', 'HINDI', 179, 3.1, '2023-06-16'),
+('Oppenheimer', 'https://resizing.flixster.com/dV1vfa4w_dB4wzk7A_VzThWUWw8=/ems.cHJkLWVtcy1hc3NldHMvbW92aWVzLzEyZDMyYjZmLThmNzAtNDliNC1hMjFmLTA2ZWY4M2UyMjJhMi5qcGc=', 'DRAMA', 'ENGLISH', 180, 8.6, '2023-07-21'),
+('Avengers: Endgame', 'https://www.themoviedb.org/t/p/original/or06FN3Dka5tukK1e9sl16pB3iy.jpg', 'ACTION', 'ENGLISH', 181, 8.4, '2019-04-26'),
+('Barbie', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1bAgxczN489AATU6yZQquEbLwLgcXzRSSXQ&s', 'COMEDY', 'ENGLISH', 114, 6.9, '2023-07-21'),
+('12th Fail', 'https://m.media-amazon.com/images/M/MV5BNTE3OTIxZDYtNjA0NC00N2YxLTg1NGQtOTYxNmZkMDkwOWNjXkEyXkFqcGc@._V1_.jpg', 'SOCIAL', 'HINDI', 147, 9.2, '2023-10-27'),
+('Animal', 'https://m.media-amazon.com/images/I/61OmlO9stnL._UF1000,1000_QL80_.jpg', 'ACTION', 'HINDI', 201, 6.5, '2023-12-01');
+
+
+
+ Theater MYSQL DATABASE CODE: ()
+
+ INSERT INTO Theaters(name, address, city, number_of_screens) VALUES
+ ("INOX Megaplex: Phoenix Mall of the Millennium", "Phoenix Mall, Viman Nagar, Pune", "Pune", 10),
+ ("City Pride: Kothrud", "Kothrud, Pune", "Pune", 5),
+ ("Cinepolis: Seasons Mall, Pune", "Seasons Mall, Magarpatta City, Pune", "Pune", 8),
+ ("PVR: Phoenix Market City, Pune", "Phoenix Market City, Viman Nagar, Pune", "Pune", 12);
+
+
+
+ Shows MYSQL DATABASE CODE: (NOTES: Ticket Cancellable - attribute needed)
+
+ INSERT INTO Shows(movie_id, theatre_id, date, time) VALUES
+ (3, 5, '2025-07-20', '19:15:00'),
+ (3, 5, '2025-07-20', '20:15:00'),
+ (3, 5, '2025-07-20', '21:30:00'),
+ (3, 5, '2025-07-20', '22:30:00'),
+ (3, 5, '2025-07-20', '23:30:00'),
+ (3, 2, '2025-07-20', '18:45:00'),
+ (3, 2, '2025-07-20', '22:15:00'),
+ (3, 3, '2025-07-20', '18:45:00'),
+ (3, 3, '2025-07-20', '20:00:00'),
+ (3, 3, '2025-07-20', '22:00:00'),
+ (3, 4, '2025-07-20', '18:45:00'),
+ (3, 4, '2025-07-20', '20:00:00'),
+ (3, 4, '2025-07-20', '22:00:00'),
+ (3, 4, '2025-07-20', '23:15:00'),
+ (4, 5, '2025-07-19', '19:15:00'),
+ (4, 5, '2025-07-19', '20:15:00'),
+ (4, 5, '2025-07-19', '21:30:00'),
+ (4, 5, '2025-07-19', '22:30:00'),
+ (4, 5, '2025-07-19', '23:30:00'),
+ (4, 2, '2025-07-19', '18:45:00'),
+ (4, 2, '2025-07-19', '22:15:00'),
+ (4, 3, '2025-07-19', '18:45:00'),
+ (4, 3, '2025-07-19', '20:00:00'),
+ (4, 3, '2025-07-19', '22:00:00'),
+ (4, 4, '2025-07-19', '18:45:00'),
+ (4, 4, '2025-07-19', '20:00:00'),
+ (4, 4, '2025-07-19', '22:00:00'),
+ (4, 4, '2025-07-19', '23:15:00');
+
+ // date format : YYYY-MM-DD
+ */

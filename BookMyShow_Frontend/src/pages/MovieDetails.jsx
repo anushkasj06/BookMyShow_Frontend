@@ -1,56 +1,114 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { Link, useParams } from "react-router-dom";
+import axios from "axios";
 
-
-const movie = {
-  title: "Sitaare Zameen Par",
-  poster: "https://m.media-amazon.com/images/M/MV5BMjA2ODRkMGUtNzUxNC00MmM5LTk3YjQtNTkxNTFlNzFiMjNiXkEyXkFqcGc@._V1_.jpg",
-  rating: 8.5,
-  votes: "67.1K",
-  languages: ["Hindi", "Telugu", "Tamil"],
-  genres: ["Comedy", "Drama", "Sports"],
-  duration: "2h 39m",
-  certificate: "UA13+",
-  releaseDate: "20 Jun, 2025",
-  description:
-    "Sitaare Zameen Par is an entertaining and heartwarming film filled with joy, laughter, and happiness. It follows Gulshan, a smug basketball coach sentenced to community service after a drunk driving incident. Assigned to train a team of Neurodivergent adults, he starts off with prejudice and condescension-only to discover that they’re the ones teaching him how to truly live.",
+// Helper function to format duration from minutes to "Xh Ym"
+const formatDuration = (minutes) => {
+  if (!minutes) return "";
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  let durationString = "";
+  if (hours > 0) {
+    durationString += `${hours}h `;
+  }
+  if (mins > 0) {
+    durationString += `${mins}m`;
+  }
+  return durationString.trim();
 };
 
-
+// Helper function to format date from "YYYY-MM-DD" to "DD Mon, YYYY"
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const options = { year: 'numeric', month: 'short', day: 'numeric' };
+  return new Date(dateString).toLocaleDateString('en-GB', options);
+};
 
 const MovieDetails = () => {
-  const { id } = useParams(); // inside your component
+  const { id } = useParams();
+  const [movie, setMovie] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchMovieDetails = async () => {
+      try {
+        setLoading(true);
+        // Assuming the endpoint for a single movie is /movies/{id}
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_API}/movies/id/${id}`);
+        setMovie(response.data);
+        setError(null);
+      } catch (err) {
+        setError("Failed to fetch movie details. Please try again later.");
+        console.error("Error fetching movie details:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchMovieDetails();
+    }
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-100 min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center text-xl">Loading...</div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-gray-100 min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center text-xl text-red-500">{error}</div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!movie) {
+    return (
+      <div className="bg-gray-100 min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center text-xl">Movie not found.</div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
   <div className="bg-gray-100 min-h-screen flex flex-col min-h-screen">
     <Navbar />
     <div className="bg-gray-900 text-white py-10 px-4 flex flex-col md:flex-row gap-8 items-center md:items-start justify-center">
       <img
-        src={movie.poster}
-        alt={movie.title}
+        src={movie.imageUrl}
+        alt={movie.movieName}
         className="rounded-xl w-64 h-96 object-cover shadow-lg border-4 border-white"
       />
       <div className="flex-1 max-w-2xl">
-        <h1 className="text-3xl font-bold mb-4">{movie.title}</h1>
+        <h1 className="text-3xl font-bold mb-4">{movie.movieName}</h1>
         <div className="flex items-center gap-4 mb-4">
           <div className="flex items-center bg-gray-800 px-4 py-2 rounded-lg text-lg font-semibold">
             <span className="text-pink-400 mr-2">★</span>
-            {movie.rating}/10 <span className="ml-2 text-gray-400">({movie.votes} Votes)</span>
+            {movie.rating}/10
           </div>
           <button className="bg-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-600">Rate now</button>
         </div>
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <span className="bg-gray-800 px-2 py-1 rounded text-sm">2D</span>
-          {movie.languages.map((lang) => (
-            <span key={lang} className="bg-gray-800 px-2 py-1 rounded text-sm">{lang}</span>
-          ))}
+          <span className="bg-gray-800 px-2 py-1 rounded text-sm">{movie.language}</span>
         </div>
         <div className="flex flex-wrap items-center gap-4 mb-4 text-gray-300">
-          <span>{movie.duration}</span>
-          <span>{movie.genres.join(", ")}</span>
-          <span>{movie.certificate}</span>
-          <span>{movie.releaseDate}</span>
+          <span>{formatDuration(movie.duration)}</span>
+          <span>{movie.genre}</span>
+          <span>{formatDate(movie.releaseDate)}</span>
         </div>
         <Link
           to={`/movie/${id}/book`}
@@ -62,7 +120,7 @@ const MovieDetails = () => {
     </div>
     <div className="bg-white max-w-4xl mx-auto p-8 rounded-lg shadow mt-8 mb-8">
       <h2 className="text-2xl font-bold mb-4 text-gray-900">About the movie</h2>
-      <p className="text-gray-700 text-lg mb-8">{movie.description}</p>
+      <p className="text-gray-700 text-lg mb-8">{movie.description || "Description not available."}</p>
     </div>
     {/* Review Section Start */}
     <div className="bg-white max-w-4xl mx-auto p-8 rounded-lg shadow mb-8">
