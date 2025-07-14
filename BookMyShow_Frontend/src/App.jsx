@@ -7,6 +7,9 @@ import MovieDetails from "./pages/MovieDetails";
 import BookTickets from "./pages/BookTickets";
 import SeatSelection from "./pages/SeatSelection";
 import BookingSummary from "./pages/BookingSummary";
+import Profile from "./pages/Profile";
+//Auth
+
 
 function App() {
   return (
@@ -19,6 +22,7 @@ function App() {
         <Route path="/movie/:id/book" element={<BookTickets />} />
         <Route path="/movie/:id/book/seats" element={<SeatSelection />} />
         <Route path="/booking-summary" element={<BookingSummary />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Router>
   );
