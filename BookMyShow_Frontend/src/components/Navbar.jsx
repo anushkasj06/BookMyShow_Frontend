@@ -11,6 +11,25 @@ const Navbar = () => {
   const [showLocationModal, setShowLocationModal] = useState(false);
 
   useEffect(() => {
+      //set the role everytime the page loads
+      const token = localStorage.getItem("token");
+      if (token) {
+        fetch(`${import.meta.env.VITE_BACKEND_API}/signup/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+        .then(response => response.json())
+        .then(data => {
+          localStorage.setItem("role", data.roles[0]);
+        })
+        .catch(error => {
+          console.error("Error fetching user data:", error);
+        });
+      }
+    }, []);
+
+  useEffect(() => {
     const storedUsername = localStorage.getItem("username");
     if (storedUsername) {
       setUsername(storedUsername);
@@ -20,6 +39,7 @@ const Navbar = () => {
   const handleLogout = () => {
     localStorage.removeItem("username");
     localStorage.removeItem("token");
+    localStorage.removeItem("role");
     setUsername("");
     setIsLoggedIn(false);
     window.location.href = "/";

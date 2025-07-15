@@ -26,11 +26,9 @@ const Login = () => {
     if (!validateForm()) return;
 
     try {
-      // Your backend is configured for HTTP Basic Auth.
-      // The `auth` option in axios automatically creates the `Authorization: Basic ...` header.
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_API}/signup/login`,
-        null, // No request body is needed, credentials are in the header.
+        null,
         {
           auth: { username, password },
         }
@@ -38,6 +36,13 @@ const Login = () => {
       if (response.status === 200) {
         localStorage.setItem("username", response.data.username);
         localStorage.setItem("token", response.data.token);
+        const roleresponse = await axios.get(`${import.meta.env.VITE_BACKEND_API}/signup/profile`, {
+          headers: {
+            'Authorization': `Bearer ${response.data.token}`,
+          },
+        });
+        localStorage.setItem("role", roleresponse.data.roles[0]);
+        document.getElementById("error").innerText = "Login successful! Redirecting...";
         // alert(`Logged in as ${username}`);
         window.location.href = "/";
       } else {
