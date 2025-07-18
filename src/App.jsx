@@ -80,39 +80,6 @@ SAMPLE MOVIES INSERTION SQL:   (NOTES: Movie Description, Reviews - attributes n
 
 INSERT INTO movies (movie_name, image_url, genre, language, duration, rating, release_date) VALUES
 ('Jurassic World', 'https://m.media-amazon.com/images/I/A1P7N8O3OwL._UF1000,1000_QL80_.jpg', 'ACTION', 'ENGLISH', 124, 7.8, '2015-06-12'),
-('Metro In Dino', 'https://upload.wikimedia.org/wikipedia/en/thumb/6/64/Metro..._In_Dino_poster.jpg/250px-Metro..._In}>
-      <AdminContext.Provider >
-        <Router>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<ReloginProtectedRoute element = {<Login />} />} />
-            <Route path="/signup" element={<ReloginProtectedRoute element = {<Signup />} />} />
-            <Route path="/movie/:id" element={<MovieDetails />} />
-            <Route path="/movie/:id/book" element={<ProtectedRoute element = {<BookTickets />} />} />
-            <Route path="/movie/:id/book/seats" element={<ProtectedRoute element = {<SeatSelection />} />} />
-            <Route path="/booking-summary" element={<ProtectedRoute element = {<BookingSummary />} />} />
-            <Route path="/profile" element={<ProtectedRoute element = {<Profile />}/>} />
-            <Route path="/admin/signup" element={<AdminProtectedRoute element = {<AdminSignup />} /> } />
-            <Route path="/admin/add-movie" element={<AdminProtectedRoute element = {<AdminAddMovie />}/>} />
-            <Route path="/admin/movies" element={<AdminProtectedRoute element = {<AdminMovieList />} />} />
-            <Route path="/admin/dashboard" element={<AdminProtectedRoute element = {<AdminDashboard />} />} />
-            <Route path="/movies/search-results" element={<SearchResults />} />
-          </Routes>
-        </Router>
-      </AdminContext.Provider>
-    </UserContext.Provider>
-  );
-}
-
-export default App;
-
-
-/**
-
-SAMPLE MOVIES INSERTION SQL:   (NOTES: Movie Description, Reviews - attributes needed)
-
-INSERT INTO movies (movie_name, image_url, genre, language, duration, rating, release_date) VALUES
-('Jurassic World', 'https://m.media-amazon.com/images/I/A1P7N8O3OwL._UF1000,1000_QL80_.jpg', 'ACTION', 'ENGLISH', 124, 7.8, '2015-06-12'),
 ('Metro In Dino', 'https://upload.wikimedia.org/wikipedia/en/thumb/6/64/Metro..._In_Dino_poster.jpg/250px-Metro..._In_Dino_poster.jpg', 'ROMANTIC', 'HINDI', 145, 7.5, '2024-11-29'),
 ('Taare Zameen Par', 'https://miro.medium.com/v2/resize:fit:736/1*SB0FRxOlWv_Tz9nH3BWueQ.jpeg', 'DRAMA', 'HINDI', 165, 8.4, '2007-12-21'),
 ('Formula 1', 'https://upload.wikimedia.org/wikipedia/en/4/44/F1_The_Movie_Theatrical_Poster.jpg', 'SPORTS', 'ENGLISH', 130, 8.0, '2025-06-25'),
