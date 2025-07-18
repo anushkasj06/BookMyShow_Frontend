@@ -13,8 +13,16 @@ const AdminShowList = () => {
   const [editForm, setEditForm] = useState({ movieId: "", theaterId: "", date: "", time: "" });
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
-  const [search, setSearch] = useState("");
   const navigate = useNavigate();
+
+  // --- NEW: State for Associate Seats Modal ---
+  const [showSeatPriceModal, setShowSeatPriceModal] = useState(false);
+  const [seatPricesForm, setSeatPricesForm] = useState({
+    showId: null,
+    priceOfPremiumSeat: "",
+    priceOfClassicPlusSeat: "",
+    priceOfClassicSeat: "",
+  });
 
   useEffect(() => {
     const role = localStorage.getItem("role");
@@ -129,17 +137,55 @@ const AdminShowList = () => {
     }
   };
 
-  // Filter shows based on search
-  const filteredShows = shows.filter(show => {
-    const movie = show.movie || getMovie(show.movie?.id);
-    const theater = show.theatre || getTheater(show.theatre?.id);
-    const searchLower = search.toLowerCase();
-    return (
-      (movie.movieName && movie.movieName.toLowerCase().includes(searchLower)) ||
-      (theater.name && theater.name.toLowerCase().includes(searchLower)) ||
-      (show.date && show.date.includes(searchLower))
-    );
-  });
+  // --- NEW: Handlers for Seat Association ---
+  const handleAssociateClick = (showId) => {
+    setSeatPricesForm({ ...seatPricesForm, showId });
+    setShowSeatPriceModal(true);
+    setMessage("");
+    setError("");
+  };
+
+  const handleSeatPriceChange = (e) => {
+    setSeatPricesForm({ ...seatPricesForm, [e.target.name]: parseInt(e.target.value) || "" });
+  };
+
+  const handleAssociateSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setMessage("");
+    setError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:8080/shows/associateShowSeats", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(seatPricesForm),
+      });
+
+      if (res.ok) {
+        const resultText = await res.text();
+        setMessage(resultText);
+        setShowSeatPriceModal(false);
+        setSeatPricesForm({
+          showId: null,
+          priceOfPremiumSeat: "",
+          priceOfClassicPlusSeat: "",
+          priceOfClassicSeat: "",
+        });
+        fetchAll();
+      } else {
+        const errorText = await res.text();
+        setError("Error: " + errorText);
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 to-blue-100 flex flex-col font-inter">
@@ -147,15 +193,6 @@ const AdminShowList = () => {
       <main className="flex-1 max-w-6xl mx-auto w-full py-12 px-4">
         <div className="bg-white rounded-2xl shadow-xl p-10 border-t-8 border-red-500 mb-10">
           <h2 className="text-3xl font-extrabold mb-8 text-red-600 text-center tracking-tight">Show List</h2>
-          <div className="mb-6 flex justify-end">
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search by movie, theater, or date..."
-              className="w-full sm:w-96 px-4 py-2 border border-pink-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
-            />
-          </div>
           {loading ? (
             <div className="text-center py-10 text-xl font-bold text-pink-600 animate-pulse">Loading shows...</div>
           ) : error ? (
@@ -173,9 +210,9 @@ const AdminShowList = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredShows.length === 0 ? (
+                  {shows.length === 0 ? (
                     <tr><td colSpan="5" className="text-center py-6 text-gray-500">No shows found.</td></tr>
-                  ) : filteredShows.map(show => {
+                  ) : shows.map(show => {
                     const movie = show.movie || getMovie(show.movie?.id);
                     const theater = show.theatre || getTheater(show.theatre?.id);
                     return (
@@ -215,7 +252,14 @@ const AdminShowList = () => {
                             <>
                               <button onClick={() => handleEdit(show)} className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Edit</button>
                               <button onClick={() => handleDelete(show.showId)} className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Delete</button>
-                              <button onClick={() => navigate(`/admin/shows/${show.showId}/seats`)} className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600">Manage Seats</button>
+                              {/* --- NEW: "Associate Seats" button --- */}
+                              <button 
+                                onClick={() => handleAssociateClick(show.showId)} 
+                                className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                                disabled={submitting}
+                              >
+                                Associate Seats
+                              </button>
                             </>
                           )}
                         </td>
@@ -231,8 +275,78 @@ const AdminShowList = () => {
         </div>
       </main>
       <Footer />
+      
+      {/* --- NEW: Seat Price Association Modal --- */}
+      {showSeatPriceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+            <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">Set Seat Prices</h3>
+            <form onSubmit={handleAssociateSubmit}>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2" htmlFor="priceOfPremiumSeat">
+                  Premium Seat Price
+                </label>
+                <input
+                  type="number"
+                  id="priceOfPremiumSeat"
+                  name="priceOfPremiumSeat"
+                  value={seatPricesForm.priceOfPremiumSeat}
+                  onChange={handleSeatPriceChange}
+                  required
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2" htmlFor="priceOfClassicPlusSeat">
+                  Classic Plus Seat Price
+                </label>
+                <input
+                  type="number"
+                  id="priceOfClassicPlusSeat"
+                  name="priceOfClassicPlusSeat"
+                  value={seatPricesForm.priceOfClassicPlusSeat}
+                  onChange={handleSeatPriceChange}
+                  required
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2" htmlFor="priceOfClassicSeat">
+                  Classic Seat Price
+                </label>
+                <input
+                  type="number"
+                  id="priceOfClassicSeat"
+                  name="priceOfClassicSeat"
+                  value={seatPricesForm.priceOfClassicSeat}
+                  onChange={handleSeatPriceChange}
+                  required
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              <div className="flex justify-end space-x-4">
+                <button
+                  type="button"
+                  onClick={() => setShowSeatPriceModal(false)}
+                  className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                  disabled={submitting}
+                >
+                  {submitting ? "Associating..." : "Associate Seats"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default AdminShowList; 
+export default AdminShowList;

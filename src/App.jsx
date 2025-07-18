@@ -17,6 +17,9 @@ import AdminAddTheater from "./pages/AdminAddTheater";
 import AdminTheaterList from "./pages/AdminTheaterList";
 import AdminTheaterSeats from "./pages/AdminTheaterSeats";
 import AdminAddShow from "./pages/AdminAddShow";
+import AdminShowList from "./pages/AdminShowList";
+import AssociateShowSeats from "./components/AssociateShowSeats";
+
 
 
 function App() {
@@ -49,7 +52,10 @@ function App() {
         <Route path="/admin/theaters" element={<AdminTheaterList />} />
         <Route path="/admin/theaters/:theaterId/seats" element={<AdminTheaterSeats />} />
         <Route path="/admin/add-show" element={<AdminAddShow />} />
+        <Route path="/admin/shows" element={<AdminShowList />} />
         <Route path="/movies/search-results" element={<SearchResults />} /> 
+        <Route path="/admin/show-list" element={<AdminShowList />} />
+        <Route path="/admin/associate-seats/:showId" element={<AssociateShowSeats />} /> {/* New Route */}
       </Routes>
     </Router>
   );

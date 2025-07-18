@@ -49,11 +49,9 @@ const AdminDashboard = () => {
               className="bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold py-6 rounded-xl shadow hover:from-pink-600 hover:to-red-600 text-xl transition">
               Add Show
             </button>
-            <button disabled className="bg-gradient-to-r from-gray-400 to-gray-300 text-white font-bold py-6 rounded-xl shadow text-xl opacity-60 cursor-not-allowed">
-              Add Show (Coming Soon)
-            </button>
-            <button disabled className="bg-gradient-to-r from-gray-400 to-gray-300 text-white font-bold py-6 rounded-xl shadow text-xl opacity-60 cursor-not-allowed">
-              More Features (Coming Soon)
+            <button onClick={() => navigate("/admin/shows")}
+              className="bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold py-6 rounded-xl shadow hover:from-pink-600 hover:to-red-600 text-xl transition">
+              Show List
             </button>
           </div>
         </div>
