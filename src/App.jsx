@@ -1,5 +1,5 @@
-import React, { use } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { createContext, useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -13,6 +13,10 @@ import AdminAddMovie from "./pages/AdminAddMovie";
 import SearchResults from "./components/SearchResults"
 import AdminMovieList from "./pages/AdminMovieList";
 import AdminDashboard from "./pages/AdminDashboard";
+import axios from "axios";
+
+export const UserContext = createContext();
+export const AdminContext = createContext();
 import AdminAddTheater from "./pages/AdminAddTheater";
 import AdminTheaterList from "./pages/AdminTheaterList";
 import AdminTheaterSeats from "./pages/AdminTheaterSeats";
@@ -24,40 +28,59 @@ import AssociateShowSeats from "./components/AssociateShowSeats";
 
 function App() {
 
-  const isAuthenticated = () => {
-    return !!localStorage.getItem("token");
+  const ProtectedRoute = ({ element, ...rest }) => {
+    return (localStorage.getItem("token")) ? element : <Navigate to="/login" />
   }
 
-  // const isAdmin = () => {
-  //   const user = JSON.parse(localStorage.getItem("user"));
-  //   return user && user.role === "ADMIN";
-  // }
+  const AdminProtectedRoute = ({ element, ...rest }) => {
+    if(localStorage.getItem("role") == "USER"){
+      alert("You are not an admin!");
+      return <Navigate to="/" />
+    }
+    return (localStorage.getItem("role") == "ADMIN") ? element : <Navigate to="/login" />
+  }
+
+  const ReloginProtectedRoute = ({ element, ...rest }) => {
+    return (localStorage.getItem("token")) ? <Navigate to="/" /> : element
+  }
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
+  }, []);
+
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/movie/:id" element={<MovieDetails />} />
-        <Route path="/movie/:id/book" element={<BookTickets />} />
-        <Route path="/movie/:id/book/seats" element={<SeatSelection />} />
-        <Route path="/booking-summary" element={<BookingSummary />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/admin/signup" element={<AdminSignup />} />
-        <Route path="/admin/add-movie" element={<AdminAddMovie />} />
-        <Route path="/admin/movies" element={<AdminMovieList />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/add-theater" element={<AdminAddTheater />} />
-        <Route path="/admin/theaters" element={<AdminTheaterList />} />
-        <Route path="/admin/theaters/:theaterId/seats" element={<AdminTheaterSeats />} />
-        <Route path="/admin/add-show" element={<AdminAddShow />} />
-        <Route path="/admin/shows" element={<AdminShowList />} />
-        <Route path="/movies/search-results" element={<SearchResults />} /> 
-        <Route path="/admin/show-list" element={<AdminShowList />} />
-        <Route path="/admin/associate-seats/:showId" element={<AssociateShowSeats />} /> {/* New Route */}
-      </Routes>
-    </Router>
+    <UserContext.Provider value={[null, null]}>
+      <AdminContext.Provider value={[null, null]} >
+        <Router>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<ReloginProtectedRoute element = {<Login />} />} />
+            <Route path="/signup" element={<ReloginProtectedRoute element = {<Signup />} />} />
+            <Route path="/movie/:id" element={<MovieDetails />} />
+            <Route path="/movie/:id/book" element={<ProtectedRoute element = {<BookTickets />} />} />
+            <Route path="/movie/:id/book/seats" element={<ProtectedRoute element = {<SeatSelection />} />} />
+            <Route path="/booking-summary" element={<ProtectedRoute element = {<BookingSummary />} />} />
+            <Route path="/profile" element={<ProtectedRoute element = {<Profile />}/>} />
+            <Route path="/admin/signup" element={<AdminProtectedRoute element = {<AdminSignup />} /> } />
+            <Route path="/admin/add-movie" element={<AdminProtectedRoute element = {<AdminAddMovie />}/>} />
+            <Route path="/admin/movies" element={<AdminProtectedRoute element = {<AdminMovieList />} />} />
+            <Route path="/admin/dashboard" element={<AdminProtectedRoute element = {<AdminDashboard />} />} />
+            <Route path="/admin/add-theater" element={<AdminProtectedRoute element = {<AdminAddTheater/>} />} />
+            <Route path="/admin/theaters" element={<AdminProtectedRoute element = {<AdminTheaterList/>} />} />
+            <Route path="/admin/theaters/:theaterId/seats" element={<AdminProtectedRoute element = {<AdminTheaterSeats/>} />} />
+            <Route path="/admin/add-show" element={<AdminProtectedRoute element = {<AdminAddShow/>} />} />
+            <Route path="/admin/shows" element={<AdminProtectedRoute element = {<AdminShowList/>} />} />
+            <Route path="/movies/search-results" element={<SearchResults />} /> 
+            <Route path="/admin/show-list" element={<AdminProtectedRoute element = {<AdminShowList/>} />} />
+            <Route path="/admin/associate-seats/:showId" element={<AdminProtectedRoute element = {<AssociateShowSeats/>} />} /> {/* New Route */}
+          </Routes>
+        </Router>
+      </AdminContext.Provider>
+    </UserContext.Provider>
   );
 }
 
