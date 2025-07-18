@@ -45,7 +45,6 @@ const SelectSeatsModal = ({ isOpen, onClose, onSelect, theater, time }) => {
 
 const BookTickets = () => {
   const { id } = useParams();
-  console.log("Movie ID:", id);
   const navigate = useNavigate();
   const [modal, setModal] = useState({ open: false, theater: null, time: null, showId: null });
   const [movieDetails, setMovieDetails] = useState({});
@@ -58,7 +57,7 @@ const BookTickets = () => {
   // Fetch movie details if needed
   useEffect(() => {
     const fetchMovieDetails = async () => {
-      console.log("Fetching movie details for ID:", id);
+      // console.log("Fetching movie details for ID:", id);
       try {
         const response = await axios.get(`${import.meta.env.VITE_BACKEND_API}/movies/id/${id}`);
         // console.log("Response:", response);
@@ -100,7 +99,7 @@ const BookTickets = () => {
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${localStorage.getItem("token")}`
-          }        
+          }
         });
         if (response.status !== 200) {
           throw new Error("Network response was not ok");
@@ -108,7 +107,7 @@ const BookTickets = () => {
         const data = response.data;
         // console.log("Theaters data:", data); // Log the theaters data
         setTheaters(data);
-        console.log("Fetched theaters:", theaters);
+        // console.log("Fetched theaters:", theaters);
       } catch (error) {
         console.error("Error fetching theaters:", error);
       }
@@ -121,11 +120,12 @@ const BookTickets = () => {
     const fetchShowtimes = async () => {
       setLoadingShowtimes(true); // Set loading state to true before fetching
       try {
-        const response = await axios.get(`${import.meta.env.VITE_BACKEND_API}/shows/theaterAndShowTimingsByMovie`, { params: {
-          movieId: id,
-          city: localStorage.getItem("city") || "Pune",
-          date: selectedDate || new Date().toISOString().split("T")[0] // Use the selected date or today's date if not set
-        }, 
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_API}/shows/theaterAndShowTimingsByMovie`, {
+          params: {
+            movieId: id,
+            city: localStorage.getItem("city") || "Pune",
+            date: selectedDate || new Date().toISOString().split("T")[0] // Use the selected date or today's date if not set
+          },
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${localStorage.getItem("token")}`
@@ -134,44 +134,18 @@ const BookTickets = () => {
         if (response.status !== 200) {
           throw new Error("Network response was not ok");
         }
-        console.log(response);
+        // console.log(response);
         const data = response.data;
-        console.log("Showtimes data with theater_id as key:", data);
-        console.log("Theaters data:", theaters); // Log the theaters data
+        // console.log("Showtimes data with theater_id as key:", data);
+        // console.log("Theaters data:", theaters); // Log the theaters data
         const formattedCinemas = [];
-        for(const theater of theaters) {
+        for (const theater of theaters) {
           const showtimesWithShowIds = data[theater.id] || [];
-          /*
-          {
-    "2": {
-        "35": "18:45:00",
-        "36": "22:15:00"
-    },
-    "3": {
-        "37": "18:45:00",
-        "38": "20:00:00",
-        "39": "22:00:00"
-    },
-    "4": {
-        "40": "18:45:00",
-        "41": "20:00:00",
-        "42": "22:00:00",
-        "43": "23:15:00"
-    },
-    "5": {
-        "32": "21:30:00",
-        "33": "22:30:00",
-        "34": "23:30:00",
-        "30": "19:15:00",
-        "31": "20:15:00"
-    }
-}
-          */
-         const showtimes = [];
-         for (const showId in showtimesWithShowIds) {
-          const showTime = showtimesWithShowIds[showId];
-          showtimes.push({ showId, showTime });
-         }
+          const showtimes = [];
+          for (const showId in showtimesWithShowIds) {
+            const showTime = showtimesWithShowIds[showId];
+            showtimes.push({ showId, showTime });
+          }
           if (showtimes.length > 0) {
             formattedCinemas.push({
               id: theater.id,
@@ -181,7 +155,6 @@ const BookTickets = () => {
             });
           }
         }
-        console.log("Formatted Cinemas:", formattedCinemas);
         setCinemas(formattedCinemas);
         setLoadingShowtimes(false); // Set loading state to false after fetching
       } catch (error) {
@@ -191,9 +164,9 @@ const BookTickets = () => {
     };
 
     if (id && selectedDate) {
-        setLoadingShowtimes(true);
-    fetchShowtimes();
-  }
+      setLoadingShowtimes(true);
+      fetchShowtimes();
+    }
   }, [id, selectedDate, theaters]);
 
   const handleDateChange = (day) => setSelectedDate(day.date);
@@ -207,78 +180,78 @@ const BookTickets = () => {
     setModal({ open: false, theater: null, time: null, showId: null });
     navigate(`/movie/${id}/book/seats?theatre=${encodeURIComponent(modal.theater)}&showId=${encodeURIComponent(modal.showId)}&count=${count}&time=${encodeURIComponent(modal.time)}`);
   };
-  
+
   return (
     <div className="bg-gray-100 min-h-screen flex flex-col">
-   <Navbar />
-   <div className="max-w-5xl mx-auto w-full bg-white rounded-lg shadow mt-8 p-6">
-    <h1 className="text-2xl font-bold mb-2 text-center">
-     {(movieDetails && movieDetails.movieName) || "Loading..."} - (
-     {(movieDetails && movieDetails.language) || "Loading..."})
-    </h1>
-    {/* Movie Genre */}
-    <div className="flex flex-wrap gap-2 mb-4">
-     <span className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm">
-      {movieDetails && movieDetails.genre || "Loading..."}
-     </span>
-    </div>
+      <Navbar />
+      <div className="max-w-5xl mx-auto w-full bg-white rounded-lg shadow mt-8 p-6">
+        <h1 className="text-2xl font-bold mb-2 text-center">
+          {(movieDetails && movieDetails.movieName) || "Loading..."} - (
+          {(movieDetails && movieDetails.language) || "Loading..."})
+        </h1>
+        {/* Movie Genre */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <span className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm">
+            {movieDetails && movieDetails.genre || "Loading..."}
+          </span>
+        </div>
 
-          {/* Date selection */}
-          <div className="flex gap-2 mb-6 overflow-x-auto">
-            {dates.map((d, i) => (
-              <div
-                key={i}
-                className={`flex flex-col items-center px-4 py-2 rounded cursor-pointer border ${selectedDate === d.date
-                  ? "bg-red-500 text-white border-red-500"
-                  : "bg-gray-100 text-gray-700 border-gray-300"}`}
-                onClick={() => handleDateChange(d)}
-              >
-                <span className="font-bold">{d.day}</span>
-                <span className="text-lg">{d.date}</span>
-                <span className="text-xs">{d.month}</span>
-              </div>
-            ))}
-          </div>
-          {/* Cinema list */}
-          <div className="mt-6">
-            {loadingShowtimes ? (
-              <p>Loading showtimes...</p>
-            ) : cinemas.length > 0 ? (
-              cinemas.map((cinema, idx) => (
-                <div key={idx} className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
-                    <div className="font-semibold text-gray-800">{cinema.name}</div>
-                    <div className="text-xs text-gray-500">{cinema.info}</div>
-                  </div>
-                  <div className="flex flex-wrap gap-3 mt-2">
-                    {cinema.showtimes.map((showtime, i) => (
-                      <button
-                        key={showtime.showId}
-                        id={showtime.showId}
-                        className="border border-green-500 text-green-700 px-4 py-2 rounded font-semibold hover:bg-green-50 transition"
-                        onClick={() => handleShowtimeClick(cinema.id, showtime.showTime, showtime.showId)}
-                      >
-                        {showtime.showTime}
-                      </button>
-                    ))}
-                  </div>
+        {/* Date selection */}
+        <div className="flex gap-2 mb-6 overflow-x-auto">
+          {dates.map((d, i) => (
+            <div
+              key={i}
+              className={`flex flex-col items-center px-4 py-2 rounded cursor-pointer border ${selectedDate === d.date
+                ? "bg-red-500 text-white border-red-500"
+                : "bg-gray-100 text-gray-700 border-gray-300"}`}
+              onClick={() => handleDateChange(d)}
+            >
+              <span className="font-bold">{d.day}</span>
+              <span className="text-lg">{d.date}</span>
+              <span className="text-xs">{d.month}</span>
+            </div>
+          ))}
+        </div>
+        {/* Cinema list */}
+        <div className="mt-6">
+          {loadingShowtimes ? (
+            <p>Loading showtimes...</p>
+          ) : cinemas.length > 0 ? (
+            cinemas.map((cinema, idx) => (
+              <div key={idx} className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
+                  <div className="font-semibold text-gray-800">{cinema.name}</div>
+                  <div className="text-xs text-gray-500">{cinema.info}</div>
                 </div>
-              ))
-            ) : (
-              <p>No cinemas available for the selected date.</p>
-            )}
-          </div>
-   </div>
-   <SelectSeatsModal
-    isOpen={modal.open}
-    onClose={() => setModal({ open: false, theatre: null, time: null, showId: null })}
-    onSelect={handleSelectSeats}
-    theater={modal.theater}
-    time={modal.time}
-   />
-   <Footer />
-  </div>
- );
+                <div className="flex flex-wrap gap-3 mt-2">
+                  {cinema.showtimes.map((showtime, i) => (
+                    <button
+                      key={showtime.showId}
+                      id={showtime.showId}
+                      className="border border-green-500 text-green-700 px-4 py-2 rounded font-semibold hover:bg-green-50 transition"
+                      onClick={() => handleShowtimeClick(cinema.id, showtime.showTime, showtime.showId)}
+                    >
+                      {showtime.showTime}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p>No cinemas available for the selected date.</p>
+          )}
+        </div>
+      </div>
+      <SelectSeatsModal
+        isOpen={modal.open}
+        onClose={() => setModal({ open: false, theatre: null, time: null, showId: null })}
+        onSelect={handleSelectSeats}
+        theater={modal.theater}
+        time={modal.time}
+      />
+      <Footer />
+    </div>
+  );
 };
 
 export default BookTickets;
