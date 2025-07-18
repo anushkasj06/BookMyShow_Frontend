@@ -139,8 +139,7 @@ const AdminMovieList = () => {
         <div className="bg-white rounded-2xl shadow-2xl p-10 border-l-8 border-red-500 mb-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
             <h2 className="text-3xl font-extrabold text-red-600 tracking-tight">All Movies</h2>
-            {/* Search Bar */}
-            <div className="flex justify-end w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto justify-end items-end">
               <input
                 type="text"
                 placeholder="Search by movie name..."
@@ -148,6 +147,12 @@ const AdminMovieList = () => {
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full sm:w-72 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 shadow-sm transition"
               />
+              <button
+                onClick={() => window.location.href = '/admin/add-movie'}
+                className="bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold py-2 px-6 rounded-xl shadow hover:from-pink-600 hover:to-red-600 text-lg transition"
+              >
+                Add Movie
+              </button>
             </div>
           </div>
           {deleteMsg && <div className={`mb-4 text-center font-semibold ${deleteMsg.includes("success") ? "text-green-600" : "text-red-600"}`}>{deleteMsg}</div>}

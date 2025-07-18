@@ -13,6 +13,10 @@ import AdminAddMovie from "./pages/AdminAddMovie";
 import SearchResults from "./components/SearchResults"
 import AdminMovieList from "./pages/AdminMovieList";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminAddTheater from "./pages/AdminAddTheater";
+import AdminTheaterList from "./pages/AdminTheaterList";
+import AdminTheaterSeats from "./pages/AdminTheaterSeats";
+import AdminAddShow from "./pages/AdminAddShow";
 
 
 function App() {
@@ -41,6 +45,10 @@ function App() {
         <Route path="/admin/add-movie" element={<AdminAddMovie />} />
         <Route path="/admin/movies" element={<AdminMovieList />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/add-theater" element={<AdminAddTheater />} />
+        <Route path="/admin/theaters" element={<AdminTheaterList />} />
+        <Route path="/admin/theaters/:theaterId/seats" element={<AdminTheaterSeats />} />
+        <Route path="/admin/add-show" element={<AdminAddShow />} />
         <Route path="/movies/search-results" element={<SearchResults />} /> 
       </Routes>
     </Router>
