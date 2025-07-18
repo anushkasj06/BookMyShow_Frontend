@@ -1,29 +1,30 @@
-import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import axios from "axios";
 
-const seatRows = [
-  { label: "J", price: 250, count: 12, type: "PREMIUM" },
-  { label: "I", price: 250, count: 8, type: "PREMIUM" },
-  { label: "H", price: 250, count: 8, type: "PREMIUM" },
-  { label: "G", price: 230, count: 8, type: "EXECUTIVE" },
-  { label: "F", price: 230, count: 8, type: "EXECUTIVE" },
-  { label: "E", price: 230, count: 8, type: "EXECUTIVE" },
-  { label: "D", price: 230, count: 8, type: "EXECUTIVE" },
-  { label: "C", price: 230, count: 8, type: "NORMAL" },
-  { label: "B", price: 230, count: 8, type: "NORMAL" },
-  { label: "A", price: 230, count: 8, type: "NORMAL" },
-];
+// const seatRows = [
+//   { label: "J", price: 250, count: 12, type: "PREMIUM" },
+//   { label: "I", price: 250, count: 8, type: "PREMIUM" },
+//   { label: "H", price: 250, count: 8, type: "PREMIUM" },
+//   { label: "G", price: 230, count: 8, type: "EXECUTIVE" },
+//   { label: "F", price: 230, count: 8, type: "EXECUTIVE" },
+//   { label: "E", price: 230, count: 8, type: "EXECUTIVE" },
+//   { label: "D", price: 230, count: 8, type: "EXECUTIVE" },
+//   { label: "C", price: 230, count: 8, type: "NORMAL" },
+//   { label: "B", price: 230, count: 8, type: "NORMAL" },
+//   { label: "A", price: 230, count: 8, type: "NORMAL" },
+// ];
 
-const bestsellerSeats = [
+const bestsellerSeatsSample = [
   "J12", "J13", "J14", "J15", "J16", "J17", "J18", "J19", "J20", "J21",
   "G7", "G8", "G9", "G10", "G15", "G16", "G17", "G18", "G19",
   "F7", "F8", "F9", "F10", "F15", "F16", "F17", "F18", "F19",
   "C7", "C8", "C9", "C10", "C15", "C16", "C17", "C18", "C19"
 ];
 
-const soldSeats = ["J6", "I5", "H5", "G5", "F5", "E5", "D5", "C5", "B5", "A5"];
+// const soldSeats = ["J6", "I5", "H5", "G5", "F5", "E5", "D5", "C5", "B5", "A5"];
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -93,14 +94,104 @@ const ConfirmationModal = ({ isOpen, onClose, seats, amount, onDone }) => {
 
 const SeatSelection = () => {
   const query = useQuery();
-  const count = parseInt(query.get("count")) || 1;
-  const theatre = query.get("theatre") || "Cinepolis: Seasons Mall, Pune";
-  const time = query.get("time") || "08:00 PM";
-  const movie = "Sitaare Zameen Par";
+  const count = parseInt(query.get("count"));
+  const theaterId = parseInt(query.get("theatre"));
+  const showId = parseInt(query.get("showId"));
+
+  const time = query.get("time");
+  const { id } = useParams(); //movie id
+  const movieid = id;
   const [selected, setSelected] = useState([]);
   const [showPayment, setShowPayment] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [movie, setMovie] = useState("");
+  const [theatre, setTheatre] = useState("");
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [loading2, setLoading2] = useState(false);
+
+
+  const [seatRows, setSeatRows] = useState(null);
+  const [soldSeats, setSoldSeats] = useState(null);
+  const [bestsellerSeats, setBestsellerSeats] = useState(bestsellerSeatsSample);
+
+  // Simulate fetching seat data
+  useEffect(() => {
+    const fetchSeatData = async () => {
+      try {
+        setLoading(true);
+        const theaterSeatsResponse = await axios.get(`${import.meta.env.VITE_BACKEND_API}/theater-seats/theater/${theaterId}`, {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json"
+          }
+        });
+        const seatsPriceResponse = await axios.get(`${import.meta.env.VITE_BACKEND_API}/shows/seat/prices/${showId}`, {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json"
+          }
+        });
+        const bookedSeatsResponse = await axios.get(`${import.meta.env.VITE_BACKEND_API}/seats/show/${showId}/booked`, {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json"
+          }
+        });
+        if (theaterSeatsResponse.status === 200 && seatsPriceResponse.status === 200 && bookedSeatsResponse.status === 200) {
+          const theaterSeats = theaterSeatsResponse.data;
+          const formatShowSeatRows = [];
+          for (const row of theaterSeats) {
+            formatShowSeatRows.push({
+              label: row.rowLabel,
+              price: row.seatType === "PREMIUM" ? seatsPriceResponse.data["PREMIUM"] : row.seatType === "CLASSICPLUS" ? seatsPriceResponse.data["CLASSICPLUS"] : seatsPriceResponse.data["CLASSIC"],
+              count: row.seatCount,
+              type: row.seatType
+            });
+          }
+          setSeatRows(formatShowSeatRows);
+          const bookedSeatNos = bookedSeatsResponse.data.map(seat => seat.seatNo);
+          setSoldSeats(bookedSeatNos);
+        }
+      } catch (error) {
+        console.error("Error fetching seat data:", error);
+      }
+      setLoading(false);
+    };
+    fetchSeatData();
+  }, [theaterId, showId]);
+
+  //fetch movie and theater from ids
+  useEffect(() => {
+    const fetchMovieAndTheatre = async () => {
+      setLoading2(true);
+      try {
+        const movieResponse = await axios.get(`${import.meta.env.VITE_BACKEND_API}/movies/id/${movieid}`, {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json"
+          }
+        });
+        const theaterResponse = await axios.get(`${import.meta.env.VITE_BACKEND_API}/theaters/id/${theaterId}`, {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json"
+          }
+        });
+        if (movieResponse.status === 200 && theaterResponse.status === 200) {
+          setMovie(movieResponse.data.movieName);
+          setTheatre(theaterResponse.data.name);
+        }
+      } catch (error) {
+        console.error("Error fetching movie and theater data:", error);
+      }
+      setLoading2(false);
+    };
+    fetchMovieAndTheatre();
+  }, []);
+
+
+
 
   const handleSelect = (row, num) => {
     const seatId = row + num;
@@ -133,37 +224,55 @@ const SeatSelection = () => {
           <h2 className="text-xl font-bold">{movie}</h2>
           <div className="text-sm">{selected.length} / {count} Tickets</div>
         </div>
-        <div className="overflow-x-auto">
-          {seatRows.map((row) => (
-            <div key={row.label} className="flex items-center mb-2">
-              <span className="w-8 font-bold text-gray-700">{row.label}</span>
-              <div className="flex gap-2">
-                {Array.from({ length: row.count }, (_, i) => {
-                  const seatId = row.label + (i + 1);
-                  const isSold = soldSeats.includes(seatId);
-                  const isBestseller = bestsellerSeats.includes(seatId);
-                  const isSelected = selected.includes(seatId);
-                  return (
-                    <button
-                      key={seatId}
-                      disabled={isSold}
-                      onClick={() => handleSelect(row.label, i + 1)}
-                      className={`w-8 h-8 border rounded flex items-center justify-center text-xs font-semibold
+        <center>
+          <div className="flex justify-center mt-4">
+            <div className="overflow-x-auto flex-row">
+              {(seatRows) ? (seatRows.map((row) => (
+                <div key={row.label} className="flex items-center mb-2">
+                  <span className="w-8 font-bold text-gray-700">{row.label}</span>
+                  <div className="inline-block w-xl">
+                    <div className="flex gap-2 justify-center">
+                      {Array.from({ length: row.count }, (_, i) => {
+                        const seatId = row.label + (i + 1);
+                        const isSold = soldSeats.includes(seatId);
+                        const isBestseller = bestsellerSeats.includes(seatId);
+                        const isSelected = selected.includes(seatId);
+                        return (
+                          <button
+                            key={seatId}
+                            disabled={isSold}
+                            onClick={() => handleSelect(row.label, i + 1)}
+                            className={`w-8 h-8 border rounded flex items-center justify-center text-xs font-semibold
                         ${isSold ? "bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed" : ""}
                         ${isBestseller ? "border-yellow-400 text-yellow-600" : ""}
                         ${isSelected ? "bg-green-500 text-white border-green-600" : ""}
                         ${!isSold && !isSelected && !isBestseller ? "border-green-500 text-green-700" : ""}
                         hover:scale-110 transition-transform`}
-                    >
-                      {i + 1}
-                    </button>
-                  );
-                })}
+                          >
+                            {i + 1}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <span className="ml-4 text-xs text-gray-500">Rs. {row.price} {row.type}</span>
+                </div>
+              ))) : (
+                <p>Loading...</p>
+              )}
+
+              {/* All eyes here */}
+              <div className="flex justify-items-center">
+                {/* screen */}
+                <div className="bg-slate-400 h-4 w-3xl mx-auto flex items-center rounded-2xl justify-center mt-8">
+                  <p className="text-white text-xs">All eyes here</p>
+                </div>
+
               </div>
-              <span className="ml-4 text-xs text-gray-500">Rs. {row.price} {row.type}</span>
+
             </div>
-          ))}
-        </div>
+          </div>
+        </center>
         <div className="flex gap-4 mt-6 text-xs">
           <span className="inline-flex items-center"><span className="w-4 h-4 border border-yellow-400 bg-yellow-100 mr-1"></span> Bestseller</span>
           <span className="inline-flex items-center"><span className="w-4 h-4 border border-green-500 bg-white mr-1"></span> Available</span>

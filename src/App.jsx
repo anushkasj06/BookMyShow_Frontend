@@ -118,5 +118,28 @@ INSERT INTO movies (movie_name, image_url, genre, language, duration, rating, re
  (4, 4, '2025-07-19', '22:00:00'),
  (4, 4, '2025-07-19', '23:15:00');
 
- // date format : YYYY-MM-DD
+
+
+ Theater-seats MSQL:
+
+ INSERT INTO theater_seats(theater_id, row_label, seat_count, seat_type) VALUES
+ (5, 'J', 12, 'PREMIUM'),
+ (5, 'I', 8, 'PREMIUM'),
+ (5, 'H', 8, 'PREMIUM'),
+ (5, 'G', 8, 'CLASSICPLUS'),
+ (5, 'F', 8, 'CLASSICPLUS'),
+ (5, 'E', 8, 'CLASSICPLUS'),
+ (5, 'D', 8, 'CLASSICPLUS'),
+ (5, 'C', 8, 'CLASSIC'),
+ (5, 'B', 8, 'CLASSIC'),
+ (5, 'A', 8, 'CLASSIC');
+
+
+ FOR Show-seats call shows/associateShowSeats API with the following data:
+ {
+ "showId": 1,
+ "priceOfPremiumSeat": 300,
+ "priceOfClassicPlusSeat": 250,
+ "priceOfClassicSeat": 200
+}
  */
