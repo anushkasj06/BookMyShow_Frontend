@@ -17,6 +17,12 @@ import axios from "axios";
 
 export const UserContext = createContext();
 export const AdminContext = createContext();
+import AdminAddTheater from "./pages/AdminAddTheater";
+import AdminTheaterList from "./pages/AdminTheaterList";
+import AdminTheaterSeats from "./pages/AdminTheaterSeats";
+import AdminAddShow from "./pages/AdminAddShow";
+import AdminShowList from "./pages/AdminShowList";
+import AssociateShowSeats from "./components/AssociateShowSeats";
 
 
 
@@ -63,7 +69,14 @@ function App() {
             <Route path="/admin/add-movie" element={<AdminProtectedRoute element = {<AdminAddMovie />}/>} />
             <Route path="/admin/movies" element={<AdminProtectedRoute element = {<AdminMovieList />} />} />
             <Route path="/admin/dashboard" element={<AdminProtectedRoute element = {<AdminDashboard />} />} />
-            <Route path="/movies/search-results" element={<SearchResults />} />
+            <Route path="/admin/add-theater" element={<AdminProtectedRoute element = {<AdminAddTheater/>} />} />
+            <Route path="/admin/theaters" element={<AdminProtectedRoute element = {<AdminTheaterList/>} />} />
+            <Route path="/admin/theaters/:theaterId/seats" element={<AdminProtectedRoute element = {<AdminTheaterSeats/>} />} />
+            <Route path="/admin/add-show" element={<AdminProtectedRoute element = {<AdminAddShow/>} />} />
+            <Route path="/admin/shows" element={<AdminProtectedRoute element = {<AdminShowList/>} />} />
+            <Route path="/movies/search-results" element={<SearchResults />} /> 
+            <Route path="/admin/show-list" element={<AdminProtectedRoute element = {<AdminShowList/>} />} />
+            <Route path="/admin/associate-seats/:showId" element={<AdminProtectedRoute element = {<AssociateShowSeats/>} />} /> {/* New Route */}
           </Routes>
         </Router>
       </AdminContext.Provider>
