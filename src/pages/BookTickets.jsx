@@ -1,42 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import axios from "axios";
 
-const cinemas = [
-  {
-    name: "INOX Megaplex: Phoenix Mall of the Millennium",
-    showtimes: ["07:15 PM", "08:15 PM", "09:30 PM", "10:30 PM", "11:30 PM"],
-    info: "Cancellation available",
-  },
-  {
-    name: "City Pride: Kothrud",
-    showtimes: ["06:45 PM", "10:15 PM"],
-    info: "Cancellation available",
-  },
-  {
-    name: "Cinepolis: Seasons Mall, Pune",
-    showtimes: ["06:45 PM", "08:00 PM", "10:00 PM"],
-    info: "Non-cancellable",
-  },
-  {
-    name: "PVR: Phoenix Market City, Pune",
-    showtimes: ["06:45 PM", "08:00 PM", "10:00 PM", "11:15 PM"],
-    info: "Cancellation available",
-  },
-];
-
-const dates = [
-  { day: "MON", date: "07", month: "JUL" },
-  { day: "TUE", date: "08", month: "JUL" },
-  { day: "WED", date: "09", month: "JUL" },
-  { day: "THU", date: "10", month: "JUL" },
-  { day: "FRI", date: "11", month: "JUL" },
-  { day: "SAT", date: "12", month: "JUL" },
-  { day: "SUN", date: "13", month: "JUL" },
-];
-
-const SelectSeatsModal = ({ isOpen, onClose, onSelect, theatre, time }) => {
+const SelectSeatsModal = ({ isOpen, onClose, onSelect, theater, time }) => {
   const [count, setCount] = useState(1);
   if (!isOpen) return null;
   return (
@@ -77,87 +45,240 @@ const SelectSeatsModal = ({ isOpen, onClose, onSelect, theatre, time }) => {
 
 const BookTickets = () => {
   const { id } = useParams();
+  console.log("Movie ID:", id);
   const navigate = useNavigate();
-  const [modal, setModal] = useState({ open: false, theatre: null, time: null });
+  const [modal, setModal] = useState({ open: false, theater: null, time: null, showId: null });
+  const [movieDetails, setMovieDetails] = useState({});
+  const [dates, setDates] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(dates[0]?.date || new Date().toISOString().split("T")[0]); // Default to the first date if available
+  const [theaters, setTheaters] = useState([]);
+  const [loadingShowtimes, setLoadingShowtimes] = useState(true); // Added loading state
+  const [cinemas, setCinemas] = useState([]);
 
-  const handleShowtimeClick = (theatre, time) => {
-    setModal({ open: true, theatre, time });
+  // Fetch movie details if needed
+  useEffect(() => {
+    const fetchMovieDetails = async () => {
+      console.log("Fetching movie details for ID:", id);
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_API}/movies/id/${id}`);
+        // console.log("Response:", response);
+        if (response.status !== 200) {
+          throw new Error("Network response was not ok");
+        }
+        const data = response.data;
+        setMovieDetails(data);
+      } catch (error) {
+        console.error("Error fetching movie details:", error);
+      }
+    };
+    fetchMovieDetails();
+  }, []);
+
+
+  // Generate dates for the next week
+  useEffect(() => {
+    const nextWeekDates = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() + i);
+      return {
+        day: date.toLocaleString("en-US", { weekday: "short" }).toUpperCase(),
+        date: date.getDate().toString().padStart(2, "0"),
+        month: date.toLocaleString("en-US", { month: "short" }).toUpperCase(),
+      };
+    });
+    setDates(nextWeekDates.map(d => ({ ...d, date: `${new Date().getFullYear()}-${new Date(Date.parse(`${d.month} ${d.date}, ${new Date().getFullYear()}`)).getMonth() + 1}-${d.date}` })));
+  }, []);
+
+
+  // fetch the theaters
+  useEffect(() => {
+    const fetchTheaters = async () => {
+      const city = localStorage.getItem("city") || "Pune";
+
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_API}/theaters/city/${city}`, {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          }        
+        });
+        if (response.status !== 200) {
+          throw new Error("Network response was not ok");
+        }
+        const data = response.data;
+        // console.log("Theaters data:", data); // Log the theaters data
+        setTheaters(data);
+        console.log("Fetched theaters:", theaters);
+      } catch (error) {
+        console.error("Error fetching theaters:", error);
+      }
+    };
+    fetchTheaters();
+  }, []);
+
+  // Fetch showtimes and set it into cinema as per the theater id returned in the response
+  useEffect(() => {
+    const fetchShowtimes = async () => {
+      setLoadingShowtimes(true); // Set loading state to true before fetching
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_API}/shows/theaterAndShowTimingsByMovie`, { params: {
+          movieId: id,
+          city: localStorage.getItem("city") || "Pune",
+          date: selectedDate || new Date().toISOString().split("T")[0] // Use the selected date or today's date if not set
+        }, 
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          }
+        });
+        if (response.status !== 200) {
+          throw new Error("Network response was not ok");
+        }
+        console.log(response);
+        const data = response.data;
+        console.log("Showtimes data with theater_id as key:", data);
+        console.log("Theaters data:", theaters); // Log the theaters data
+        const formattedCinemas = [];
+        for(const theater of theaters) {
+          const showtimesWithShowIds = data[theater.id] || [];
+          /*
+          {
+    "2": {
+        "35": "18:45:00",
+        "36": "22:15:00"
+    },
+    "3": {
+        "37": "18:45:00",
+        "38": "20:00:00",
+        "39": "22:00:00"
+    },
+    "4": {
+        "40": "18:45:00",
+        "41": "20:00:00",
+        "42": "22:00:00",
+        "43": "23:15:00"
+    },
+    "5": {
+        "32": "21:30:00",
+        "33": "22:30:00",
+        "34": "23:30:00",
+        "30": "19:15:00",
+        "31": "20:15:00"
+    }
+}
+          */
+         const showtimes = [];
+         for (const showId in showtimesWithShowIds) {
+          const showTime = showtimesWithShowIds[showId];
+          showtimes.push({ showId, showTime });
+         }
+          if (showtimes.length > 0) {
+            formattedCinemas.push({
+              id: theater.id,
+              ...theater,
+              showtimes,
+              info: "Cancellation available"
+            });
+          }
+        }
+        console.log("Formatted Cinemas:", formattedCinemas);
+        setCinemas(formattedCinemas);
+        setLoadingShowtimes(false); // Set loading state to false after fetching
+      } catch (error) {
+        console.error("Error fetching showtimes:", error);
+        setCinemas([]);
+      }
+    };
+
+    if (id && selectedDate) {
+        setLoadingShowtimes(true);
+    fetchShowtimes();
+  }
+  }, [id, selectedDate, theaters]);
+
+  const handleDateChange = (day) => setSelectedDate(day.date);
+
+
+  const handleShowtimeClick = (theater, time, showId) => {
+    setModal({ open: true, theater, time, showId });
   };
 
   const handleSelectSeats = (count) => {
-    setModal({ open: false, theatre: null, time: null });
-    navigate(`/movie/${id}/book/seats?theatre=${encodeURIComponent(modal.theatre)}&time=${encodeURIComponent(modal.time)}&count=${count}`);
+    setModal({ open: false, theater: null, time: null, showId: null });
+    navigate(`/movie/${id}/book/seats?theatre=${encodeURIComponent(modal.theater)}&showId=${encodeURIComponent(modal.showId)}&count=${count}&time=${encodeURIComponent(modal.time)}`);
   };
-
+  
   return (
-    <div className="bg-gray-100 min-h-screen flex flex-col min-h-screen">
-      <Navbar />
-      <div className="max-w-5xl mx-auto w-full bg-white rounded-lg shadow mt-8 p-6">
-        <h1 className="text-2xl font-bold mb-2">Sitaare Zameen Par - (Hindi)</h1>
-        <div className="flex flex-wrap gap-2 mb-4">
-          <span className="bg-gray-200 px-2 py-1 rounded text-xs">UA13+</span>
-          <span className="bg-gray-200 px-2 py-1 rounded text-xs">Comedy</span>
-          <span className="bg-gray-200 px-2 py-1 rounded text-xs">Drama</span>
-          <span className="bg-gray-200 px-2 py-1 rounded text-xs">Sports</span>
-        </div>
-        {/* Date selection */}
-        <div className="flex gap-2 mb-6 overflow-x-auto">
-          {dates.map((d, i) => (
-            <div
-              key={i}
-              className={`flex flex-col items-center px-4 py-2 rounded cursor-pointer border ${
-                i === 0
-                  ? "bg-red-500 text-white border-red-500"
-                  : "bg-gray-100 text-gray-700 border-gray-300"
-              }`}
-            >
-              <span className="font-bold">{d.day}</span>
-              <span className="text-lg">{d.date}</span>
-              <span className="text-xs">{d.month}</span>
-            </div>
-          ))}
-        </div>
-        {/* Cinema list */}
-        <div>
-          {cinemas.map((cinema, idx) => (
-            <div
-              key={idx}
-              className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200"
-            >
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
-                <div className="font-semibold text-gray-800">{cinema.name}</div>
-                <div className="text-xs text-gray-500">{cinema.info}</div>
-              </div>
-              <div className="flex flex-wrap gap-3 mt-2">
-                {cinema.showtimes.map((time, i) => (
-                  <button
-                    key={i}
-                    className="border border-green-500 text-green-700 px-4 py-2 rounded font-semibold hover:bg-green-50 transition"
-                    onClick={() => handleShowtimeClick(cinema.name, time)}
-                  >
-                    {time}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="text-xs text-gray-500 mt-4">
-          <span className="inline-block bg-green-200 text-green-800 px-2 py-1 rounded mr-2">AVAILABLE</span>
-          <span className="inline-block bg-yellow-200 text-yellow-800 px-2 py-1 rounded mr-2">FAST FILLING</span>
-          <span className="inline-block bg-blue-200 text-blue-800 px-2 py-1 rounded">SUBTITLES LANGUAGE</span>
-        </div>
-      </div>
-      <SelectSeatsModal
-        isOpen={modal.open}
-        onClose={() => setModal({ open: false, theatre: null, time: null })}
-        onSelect={handleSelectSeats}
-        theatre={modal.theatre}
-        time={modal.time}
-      />
-      <Footer />
+    <div className="bg-gray-100 min-h-screen flex flex-col">
+   <Navbar />
+   <div className="max-w-5xl mx-auto w-full bg-white rounded-lg shadow mt-8 p-6">
+    <h1 className="text-2xl font-bold mb-2 text-center">
+     {(movieDetails && movieDetails.movieName) || "Loading..."} - (
+     {(movieDetails && movieDetails.language) || "Loading..."})
+    </h1>
+    {/* Movie Genre */}
+    <div className="flex flex-wrap gap-2 mb-4">
+     <span className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm">
+      {movieDetails && movieDetails.genre || "Loading..."}
+     </span>
     </div>
-  );
+
+          {/* Date selection */}
+          <div className="flex gap-2 mb-6 overflow-x-auto">
+            {dates.map((d, i) => (
+              <div
+                key={i}
+                className={`flex flex-col items-center px-4 py-2 rounded cursor-pointer border ${selectedDate === d.date
+                  ? "bg-red-500 text-white border-red-500"
+                  : "bg-gray-100 text-gray-700 border-gray-300"}`}
+                onClick={() => handleDateChange(d)}
+              >
+                <span className="font-bold">{d.day}</span>
+                <span className="text-lg">{d.date}</span>
+                <span className="text-xs">{d.month}</span>
+              </div>
+            ))}
+          </div>
+          {/* Cinema list */}
+          <div className="mt-6">
+            {loadingShowtimes ? (
+              <p>Loading showtimes...</p>
+            ) : cinemas.length > 0 ? (
+              cinemas.map((cinema, idx) => (
+                <div key={idx} className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
+                    <div className="font-semibold text-gray-800">{cinema.name}</div>
+                    <div className="text-xs text-gray-500">{cinema.info}</div>
+                  </div>
+                  <div className="flex flex-wrap gap-3 mt-2">
+                    {cinema.showtimes.map((showtime, i) => (
+                      <button
+                        key={showtime.showId}
+                        id={showtime.showId}
+                        className="border border-green-500 text-green-700 px-4 py-2 rounded font-semibold hover:bg-green-50 transition"
+                        onClick={() => handleShowtimeClick(cinema.id, showtime.showTime, showtime.showId)}
+                      >
+                        {showtime.showTime}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p>No cinemas available for the selected date.</p>
+            )}
+          </div>
+   </div>
+   <SelectSeatsModal
+    isOpen={modal.open}
+    onClose={() => setModal({ open: false, theatre: null, time: null, showId: null })}
+    onSelect={handleSelectSeats}
+    theater={modal.theater}
+    time={modal.time}
+   />
+   <Footer />
+  </div>
+ );
 };
 
 export default BookTickets;
