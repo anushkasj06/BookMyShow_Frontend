@@ -65,6 +65,34 @@ const PaymentModal = ({ isOpen, onClose, onPay, amount }) => {
   );
 };
 
+const TicketBookingFailedModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-sm relative border-2 border-red-400">
+        <button
+          className="absolute top-2 right-4 text-2xl text-gray-400 hover:text-gray-700"
+          onClick={onClose}
+        >
+          &times;
+        </button>
+        <div className="flex flex-col items-center">
+          <div className="text-5xl mb-2 text-red-500">❌</div>
+          <h2 className="text-xl font-bold mb-4 text-center">Booking Failed!</h2>
+          <p className="text-center mb-6">There was an issue processing your request. Please try again.</p>
+          <button
+            className="w-full bg-red-500 text-white py-2 rounded font-semibold hover:bg-red-600 transition text-lg"
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 const ConfirmationModal = ({ isOpen, onClose, seats, amount, onDone }) => {
   if (!isOpen) return null;
   return (
@@ -104,6 +132,7 @@ const SeatSelection = () => {
   const [selected, setSelected] = useState([]);
   const [showPayment, setShowPayment] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [ticketBookingFailed, setTicketBookingFailed] = useState(false);
   const [movie, setMovie] = useState("");
   const [theatre, setTheatre] = useState("");
   const navigate = useNavigate();
@@ -202,6 +231,55 @@ const SeatSelection = () => {
     }
   };
 
+  const [userId, setUserId] = useState(null);
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_API}/signup/profile`, {
+          headers: {
+            "Authorization": "Bearer " + localStorage.getItem("token"),
+            "Content-Type": "application/json"
+        }
+        });
+        if (response.status === 200) {
+          setUserId(response.data.id);
+        }
+      } catch (error) {
+        console.error("Error fetching user ID:", error);
+      }
+    };
+    fetchUserId();
+  }, []);
+
+
+
+  const handleTicketBooking = async () => {
+    try {
+      // console.log("Selected seats:", selected);
+      // console.log("Show ID:", showId);
+      // console.log("User ID:", userId);
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_API}/ticket/book`, {
+        showId: showId,
+        userId: userId,
+        requestSeats: selected
+      }, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json"
+        }
+      });
+      if (response.status === 200) {
+        console.log("Ticket booked successfully:", response.data);
+      }
+      // console.log("Ticket booking response:", response.data);
+      return true;
+    } catch (error) {
+      console.error("Error booking ticket:", error);
+    }
+    return false;
+  };
+
+
   // Calculate total amount
   const total = selected.reduce((sum, seatId) => {
     const row = seatRows.find((r) => r.label === seatId[0]);
@@ -292,11 +370,21 @@ const SeatSelection = () => {
       <PaymentModal
         isOpen={showPayment}
         onClose={() => setShowPayment(false)}
-        onPay={() => {
+        onPay={async () => {
           setShowPayment(false);
-          setShowConfirmation(true);
+          if(await handleTicketBooking()){
+            setShowConfirmation(true);
+          }
+          else{
+            setTicketBookingFailed(true);
+          }
         }}
         amount={total}
+      />
+
+      <TicketBookingFailedModal
+        isOpen={ticketBookingFailed}
+        onClose={() => setTicketBookingFailed(false)}
       />
       <ConfirmationModal
         isOpen={showConfirmation}

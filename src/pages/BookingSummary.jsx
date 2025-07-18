@@ -49,9 +49,9 @@ const BookingSummary = () => {
         </div>
         <button
           className="bg-pink-500 text-white px-8 py-2 rounded-lg font-bold text-lg hover:bg-pink-600 transition"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/profile")}
         >
-          Back to Home
+          Show your Booked Tickets
         </button>
       </div>
       <Footer />
