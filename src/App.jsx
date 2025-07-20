@@ -10,7 +10,8 @@ import BookingSummary from "./pages/BookingSummary";
 import Profile from "./pages/Profile";
 import AdminSignup from "./pages/AdminSignup";
 import AdminAddMovie from "./pages/AdminAddMovie";
-import SearchResults from "./components/SearchResults"
+import SearchResults from "./components/SearchResults";
+import TheaterDetails from "./pages/TheaterDetails";
 import AdminMovieList from "./pages/AdminMovieList";
 import AdminDashboard from "./pages/AdminDashboard";
 import Chatbot from "./components/Chatbot";
@@ -77,7 +78,8 @@ function App() {
             <Route path="/admin/theaters/:theaterId/seats" element={<AdminProtectedRoute element = {<AdminTheaterSeats/>} />} />
             <Route path="/admin/add-show" element={<AdminProtectedRoute element = {<AdminAddShow/>} />} />
             <Route path="/admin/shows" element={<AdminProtectedRoute element = {<AdminShowList/>} />} />
-            <Route path="/movies/search-results" element={<SearchResults />} /> 
+                        <Route path="/search-results" element={<SearchResults />} />
+            <Route path="/theater/:theaterId" element={<TheaterDetails />} />
             <Route path="/admin/show-list" element={<AdminProtectedRoute element = {<AdminShowList/>} />} />
             <Route path="/admin/associate-seats/:showId" element={<AdminProtectedRoute element = {<AssociateShowSeats/>} />} /> {/* New Route */}
           </Routes>
