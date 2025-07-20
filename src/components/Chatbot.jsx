@@ -387,7 +387,7 @@ const Chatbot = () => {
           resetBooking();
           setMessages((prev) => [
             ...prev,
-            { role: 'assistant', content: 'Agentic flow cancelled. You can start a new request anytime.', id: uniqueId() },
+            { role: 'assistant', content: 'Ticket Booking cancelled. You can start a new request anytime.', id: uniqueId() },
           ]);
           setIsLoading(false);
           return;
