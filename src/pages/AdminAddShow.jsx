@@ -99,7 +99,7 @@ const AdminAddShow = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-100 via-blue-50 to-blue-200 flex flex-col relative overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-pink-100 via-blue-50 to-blue-200 flex flex-col relative">
       {/* Animated/floating background shapes */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute -top-32 -left-32 w-96 h-96 bg-pink-200 opacity-30 rounded-full blur-3xl animate-pulse"></div>
