@@ -562,6 +562,11 @@ User: ${textToSend}`;
     }
   };
 
+
+  const handleChatToggle = () => {
+    (localStorage.getItem("token")) ? setIsOpen((o) => !o) : navigate('/login');
+  }
+
   // --- UI RENDERING ---
   return (
     <div className={`chatbot-container${isMaximized ? ' chatbot-maximized' : ''}`}>
@@ -575,6 +580,7 @@ User: ${textToSend}`;
               <button onClick={() => setIsMaximized(m => !m)} className="maximize-btn" title={isMaximized ? 'Restore' : 'Maximize'}>
                 {isMaximized ? '🗗' : '🗖'}
               </button>
+              
             </div>
           </div>
           <div className="chat-messages">
@@ -650,7 +656,7 @@ User: ${textToSend}`;
           </div>
         </div>
       )}
-      <button onClick={() => setIsOpen((o) => !o)} className="chat-toggle-btn">
+      <button onClick={() => handleChatToggle()} className="chat-toggle-btn">
         {isOpen ? '✖' : '💬'}
       </button>
     </div>
