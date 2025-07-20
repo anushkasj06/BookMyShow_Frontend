@@ -183,71 +183,67 @@ export default function Profile() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-pink-100 to-blue-100 min-h-screen flex flex-col">
+    <div className="bg-white min-h-screen flex flex-col">
       <Navbar />
-      <div className="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
-        <div className="bg-white p-8 rounded-2xl shadow-2xl border border-gray-100 w-full max-w-2xl">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-center mb-6 text-pink-600">Profile</h1>
-          <p className="text-center text-gray-600 mb-8">Welcome, {userData?.name || username}!</p>
-
+      <div className="flex-grow flex items-center justify-center px-16 py-12">
+        <div className="w-full max-w-5xl">
+          {/* Profile Header */}
+          <div className="flex items-center gap-8 mb-12 border-b-4 border-pink-200 pb-8">
+            {/* Profile Avatar */}
+            <div className="w-32 h-32 rounded-full bg-pink-500 flex items-center justify-center text-white text-6xl font-extrabold shadow-lg border-4 border-white">
+              {userData?.name ? userData.name[0].toUpperCase() : username[0].toUpperCase()}
+            </div>
+            <div>
+              <h1 className="text-4xl font-extrabold text-red-600 mb-2">{userData?.name || username}</h1>
+              <p className="text-lg text-gray-600">Welcome to your BookMyShow profile!</p>
+            </div>
+          </div>
+          {/* Profile Details */}
           {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-
           {userData && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                <div className="p-4 border rounded-lg bg-gray-50 transition-shadow hover:shadow-md">
-                  <p className="text-sm font-medium text-gray-500">Name</p>
-                  <p className="text-lg font-semibold text-gray-800">{userData.name}</p>
-                </div>
-
-                <div className="p-4 border rounded-lg bg-gray-50 transition-shadow hover:shadow-md">
-                  <p className="text-sm font-medium text-gray-500">Username</p>
-                  <p className="text-lg font-semibold text-gray-800">{userData.username}</p>
-                </div>
-
-                <div className="p-4 border rounded-lg bg-gray-50 transition-shadow hover:shadow-md">
-                  <p className="text-sm font-medium text-gray-500">Email</p>
-                  <p className="text-lg font-semibold text-gray-800">{userData.email}</p>
-                </div>
-
-                <div className="p-4 border rounded-lg bg-gray-50 transition-shadow hover:shadow-md">
-                  <p className="text-sm font-medium text-gray-500">Phone Number</p>
-                  <p className="text-lg font-semibold text-gray-800">{userData.phoneNumber}</p>
-                </div>
-
-                <div className="p-4 border rounded-lg bg-gray-50 transition-shadow hover:shadow-md">
-                  <p className="text-sm font-medium text-gray-500">Gender</p>
-                  <p className="text-lg font-semibold text-gray-800 capitalize">{userData.gender}</p>
-                </div>
-
-                <div className="p-4 border rounded-lg bg-gray-50 transition-shadow hover:shadow-md">
-                  <p className="text-sm font-medium text-gray-500">Age</p>
-                  <p className="text-lg font-semibold text-gray-800">{userData.age}</p>
-                </div>
-
+            <div className="grid grid-cols-3 gap-8 mb-16">
+              <div className="p-6 rounded-xl bg-pink-50 border-2 border-pink-200 shadow">
+                <p className="text-sm font-medium text-gray-500">Username</p>
+                <p className="text-xl font-bold text-red-600">{userData.username}</p>
+              </div>
+              <div className="p-6 rounded-xl bg-pink-50 border-2 border-pink-200 shadow">
+                <p className="text-sm font-medium text-gray-500">Email</p>
+                <p className="text-xl font-bold text-red-600">{userData.email}</p>
+              </div>
+              <div className="p-6 rounded-xl bg-pink-50 border-2 border-pink-200 shadow">
+                <p className="text-sm font-medium text-gray-500">Phone Number</p>
+                <p className="text-xl font-bold text-red-600">{userData.phoneNumber}</p>
+              </div>
+              <div className="p-6 rounded-xl bg-pink-50 border-2 border-pink-200 shadow">
+                <p className="text-sm font-medium text-gray-500">Gender</p>
+                <p className="text-xl font-bold text-red-600 capitalize">{userData.gender}</p>
+              </div>
+              <div className="p-6 rounded-xl bg-pink-50 border-2 border-pink-200 shadow">
+                <p className="text-sm font-medium text-gray-500">Age</p>
+                <p className="text-xl font-bold text-red-600">{userData.age}</p>
               </div>
             </div>
           )}
+          {/* Booked Tickets */}
           {bookedTickets && (
             <div className="mt-8">
-              <h2 className="text-2xl font-bold mb-4 text-pink-600">Your Booked Tickets</h2>
+              <h2 className="text-2xl font-extrabold mb-8 text-red-600 flex items-center gap-2">
+                <span className="text-3xl">🎟️</span> Your Booked Tickets
+              </h2>
               {bookedTickets.length > 0 ? (
-                <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-8">
                   {bookedTickets.map((ticket) => (
-                    <div key={ticket.ticketId} className="bg-white p-4 rounded-lg shadow-md border border-gray-200 cursor-pointer hover:bg-gray-100" onClick={() => setSelectedTicket(ticket)}>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-lg font-semibold text-gray-800">{ticket.movie.movieName}</p>
-                          <p className="text-sm text-gray-600">{ticket.theater.name}</p>
-                          <p className="text-sm text-gray-600">Show Date: {new Date(ticket.date).toLocaleDateString()}</p>
-                          <p className="text-sm text-gray-600">Show Time: {ticket.time}</p>
-                          <p className="text-sm text-gray-600">Seat Number: {ticket.seatNo}</p>
-                          <p className="text-sm text-gray-600">Fare: ₹{ticket.fare}</p>
-                          <p className="text-sm text-gray-600">Booked At: {new Date(ticket.bookedAt).toLocaleDateString()}</p>
-                        </div>
-                        <button className="text-sm bg-pink-500 text-white px-3 py-1 rounded hover:bg-pink-600">View Ticket</button>
+                    <div key={ticket.ticketId} className="bg-white p-6 rounded-2xl shadow-xl border-2 border-pink-200 hover:scale-[1.01] transition-transform duration-200 cursor-pointer" onClick={() => setSelectedTicket(ticket)}>
+                      <div className="flex flex-col gap-2">
+                        <p className="text-xl font-bold text-red-600">{ticket.movie.movieName}</p>
+                        <p className="text-base text-gray-600">{ticket.theater.name}</p>
+                        <p className="text-base text-gray-600">Show Date: {new Date(ticket.date).toLocaleDateString()}</p>
+                        <p className="text-base text-gray-600">Show Time: {ticket.time}</p>
+                        <p className="text-base text-gray-600">Seat Number: {ticket.seatNo}</p>
+                        <p className="text-base text-gray-600">Fare: ₹{ticket.fare}</p>
+                        <p className="text-base text-gray-600">Booked At: {new Date(ticket.bookedAt).toLocaleDateString()}</p>
                       </div>
+                      <button className="mt-4 text-sm bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2 rounded shadow font-bold hover:from-pink-500 hover:to-red-500 transition-all">View Ticket</button>
                     </div>))}
                 </div>
               ) : (

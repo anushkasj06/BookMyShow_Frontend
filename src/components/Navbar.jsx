@@ -9,10 +9,11 @@ const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState(localStorage.getItem("username") || "");
   const [userRole, setUserRole] = useState(localStorage.getItem("role") || ""); // New state for user role
-  const [city, setCity] = useState("Pune");
+  const [city, setCity] = useState(localStorage.getItem("city") || "Pune");
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState(""); // New state for search query
   const [searchError, setSearchError] = useState(""); // State for displaying search errors
+  const [searchType, setSearchType] = useState("movie"); // New state for search type (movie or theater)
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -86,71 +87,109 @@ const Navbar = () => {
   const handleSearchSubmit = async (e) => {
     e.preventDefault(); // Prevent default form submission
     if (searchQuery.trim() === "") {
-      setSearchError("Please enter a movie name to search.");
+      setSearchError("Please enter a search term.");
       return;
     }
 
     try {
-      // Assuming your backend has an endpoint like /movies/search?name=QUERY
-      const response = await axios.get(
-        `${import.meta.env.VITE_BACKEND_API}/movies/search?name=${searchQuery.trim()}`,
-        // Add Authorization header if movie search also requires authentication
-        // {
-        //   headers: {
-        //     Authorization: `Bearer ${localStorage.getItem("token")}`,
-        //   },
-        // }
-      );
-      // Navigate to a search results page, passing the results via state
-      navigate(`/movies/search-results?query=${searchQuery.trim()}`, { state: { searchResults: response.data, searchQuery: searchQuery.trim() } });
+      let searchResults = [];
+      let searchTypeLabel = "";
+
+      if (searchType === "movie") {
+        // Search for movies
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_API}/movies/search?name=${searchQuery.trim()}`
+        );
+        searchResults = response.data;
+        searchTypeLabel = "movies";
+      } else {
+        // Search for theaters
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_API}/theaters`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        // Filter theaters by name (client-side filtering since no theater search API exists)
+        const allTheaters = response.data;
+        searchResults = allTheaters.filter(theater =>
+          theater.name.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+          theater.city.toLowerCase().includes(searchQuery.trim().toLowerCase())
+        );
+        searchTypeLabel = "theaters";
+      }
+
+      // Navigate to search results page with both movie and theater results
+      navigate(`/search-results?query=${searchQuery.trim()}&type=${searchType}`, { 
+        state: { 
+          searchResults, 
+          searchQuery: searchQuery.trim(),
+          searchType: searchType,
+          searchTypeLabel
+        } 
+      });
       setSearchQuery(""); // Clear search query after submission
       setSearchError(""); // Clear any previous errors
     } catch (error) {
-      console.error("Error searching for movies:", error);
-      setSearchError("Failed to search movies. Please try again or check the movie name.");
+      console.error("Error searching:", error);
+      setSearchError(`Failed to search ${searchType}. Please try again.`);
     }
   };
 
   return isLoggedIn ? (
     <>
-      <nav className="bg-white shadow px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="text-2xl font-bold text-black">
+      <nav className="backdrop-blur-md bg-white/70 shadow-xl px-8 py-4 flex items-center justify-between rounded-b-2xl border-b border-red-100/40 transition-all duration-300">
+        <div className="flex items-center gap-6">
+          <Link to="/" className="text-3xl font-extrabold text-black tracking-tight drop-shadow-sm hover:scale-105 transition-transform">
             book<span className="text-red-600">my</span>show
           </Link>
-          {/* Search Bar */}
-          <form onSubmit={handleSearchSubmit} className="relative">
-            <input
-              type="text"
-              placeholder="Search for Movies..."
-              className="ml-6 px-4 py-2 rounded border w-96 focus:outline-none focus:ring-2 focus:ring-red-500"
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-            <button type="submit" className="ml-2 bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 transition">Search</button>
+          {/* Enhanced Search Bar */}
+          <form onSubmit={handleSearchSubmit} className="relative flex items-center gap-2">
+            <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white/80 shadow-sm focus-within:ring-2 focus-within:ring-red-400">
+              <select
+                value={searchType}
+                onChange={(e) => setSearchType(e.target.value)}
+                className="px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 border-r border-gray-200 text-sm focus:outline-none focus:bg-red-50 transition-colors"
+              >
+                <option value="movie">Movies</option>
+                <option value="theater">Theaters</option>
+              </select>
+              <input
+                type="text"
+                placeholder={`Search for ${searchType === 'movie' ? 'Movies' : 'Theaters'}...`}
+                className="px-4 py-2 w-80 bg-transparent focus:outline-none focus:ring-0 text-gray-800 placeholder-gray-400"
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
+            </div>
+            <button type="submit" className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-5 py-2 rounded-xl shadow-md hover:from-pink-500 hover:to-red-500 hover:scale-105 transition-all font-semibold">
+              Search
+            </button>
             {searchError && (
-              <p className="absolute left-6 top-full mt-1 text-sm text-red-600">{searchError}</p>
+              <p className="absolute left-0 top-full mt-1 text-sm text-red-600 animate-pulse">{searchError}</p>
             )}
           </form>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           {userRole === "ADMIN" && (
             <>
-              <Link to="/admin/dashboard" className="text-gray-700 cursor-pointer hover:text-red-500 font-semibold">
+              <Link to="/admin/dashboard" className="text-gray-700 cursor-pointer hover:text-red-500 font-semibold transition-colors underline underline-offset-4">
                 Dashboard
               </Link>
             </>
           )}
           <span
-            className="text-gray-700 cursor-pointer hover:text-red-500"
+            className="text-gray-700 cursor-pointer hover:text-red-500 font-medium px-3 py-1 rounded-lg bg-white/60 shadow-sm transition-all border border-gray-100"
             onClick={() => setShowLocationModal(true)}
           >
-            {city} ▼
+            {city} <span className="ml-1">▼</span>
           </span>
-          <span onClick={handleProfile} className="text-gray-700 cursor-pointer hover:text-red-500">
+          <span onClick={handleProfile} className="text-gray-700 cursor-pointer hover:text-red-500 font-semibold px-3 py-1 rounded-lg transition-colors bg-white/60 shadow-sm border border-gray-100">
             {username}
           </span>
-          <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
+          <button onClick={handleLogout} className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-5 py-2 rounded-xl shadow-md hover:from-pink-500 hover:to-red-500 hover:scale-105 transition-all font-semibold">
             Logout
           </button>
         </div>
@@ -166,40 +205,52 @@ const Navbar = () => {
     </>
   ) : (
     <>
-      <nav className="bg-white shadow px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="text-2xl font-bold text-black">
+      <nav className="backdrop-blur-md bg-white/70 shadow-xl px-8 py-4 flex items-center justify-between rounded-b-2xl border-b border-red-100/40 transition-all duration-300">
+        <div className="flex items-center gap-6">
+          <Link to="/" className="text-3xl font-extrabold text-black tracking-tight drop-shadow-sm hover:scale-105 transition-transform">
             book<span className="text-red-600">my</span>show
           </Link>
-          {/* Search Bar for logged out users */}
-          <form onSubmit={handleSearchSubmit} className="relative">
-            <input
-              type="text"
-              placeholder="Search for Movies..."
-              className="ml-6 px-4 py-2 rounded border w-96 focus:outline-none focus:ring-2 focus:ring-red-500"
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-            <button type="submit" className="ml-2 bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 transition">Search</button>
+          {/* Enhanced Search Bar for logged out users */}
+          <form onSubmit={handleSearchSubmit} className="relative flex items-center gap-2">
+            <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white/80 shadow-sm focus-within:ring-2 focus-within:ring-red-400">
+              <select
+                value={searchType}
+                onChange={(e) => setSearchType(e.target.value)}
+                className="px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 border-r border-gray-200 text-sm focus:outline-none focus:bg-red-50 transition-colors"
+              >
+                <option value="movie">Movies</option>
+                <option value="theater">Theaters</option>
+              </select>
+              <input
+                type="text"
+                placeholder={`Search for ${searchType === 'movie' ? 'Movies' : 'Theaters'}...`}
+                className="px-4 py-2 w-80 bg-transparent focus:outline-none focus:ring-0 text-gray-800 placeholder-gray-400"
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
+            </div>
+            <button type="submit" className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-5 py-2 rounded-xl shadow-md hover:from-pink-500 hover:to-red-500 hover:scale-105 transition-all font-semibold">
+              Search
+            </button>
             {searchError && (
-              <p className="absolute left-6 top-full mt-1 text-sm text-red-600">{searchError}</p>
+              <p className="absolute left-0 top-full mt-1 text-sm text-red-600 animate-pulse">{searchError}</p>
             )}
           </form>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <span
-            className="text-gray-700 cursor-pointer hover:text-red-500"
+            className="text-gray-700 cursor-pointer hover:text-red-500 font-medium px-3 py-1 rounded-lg bg-white/60 shadow-sm transition-all border border-gray-100"
             onClick={() => setShowLocationModal(true)}
           >
-            {city} ▼
+            {city} <span className="ml-1">▼</span>
           </span>
-          <Link to="/login" className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
+          <Link to="/login" className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-5 py-2 rounded-xl shadow-md hover:from-pink-500 hover:to-red-500 hover:scale-105 transition-all font-semibold">
             Login
           </Link>
-          <Link to="/signup" className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition">
+          <Link to="/signup" className="bg-gray-100 text-gray-800 px-5 py-2 rounded-xl shadow-md hover:bg-gray-200 hover:scale-105 transition-all font-semibold">
             Sign Up
           </Link>
-          <button className="ml-2 text-2xl">&#9776;</button>
+          <button className="ml-2 text-2xl text-gray-700 hover:text-red-500 transition-colors">&#9776;</button>
         </div>
       </nav>
       <LocationModal

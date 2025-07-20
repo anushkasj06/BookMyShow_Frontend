@@ -182,64 +182,75 @@ const BookTickets = () => {
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen flex flex-col">
+    <div className="bg-gray-50 min-h-screen flex flex-col">
       <Navbar />
-      <div className="max-w-5xl mx-auto w-full bg-white rounded-lg shadow mt-8 p-6">
-        <h1 className="text-2xl font-bold mb-2 text-center">
-          {(movieDetails && movieDetails.movieName) || "Loading..."} - (
-          {(movieDetails && movieDetails.language) || "Loading..."})
-        </h1>
-        {/* Movie Genre */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          <span className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-sm">
-            {movieDetails && movieDetails.genre || "Loading..."}
-          </span>
-        </div>
+      <div className="w-full px-0 md:px-12 lg:px-24 xl:px-32 2xl:px-64 py-10">
+        <div className="w-full bg-white rounded-2xl shadow-xl border border-gray-200 p-10">
+          <h1 className="text-4xl font-extrabold mb-2 text-left text-red-600 tracking-tight">
+            {(movieDetails && movieDetails.movieName) || "Loading..."} <span className="text-gray-400 font-normal text-2xl">({(movieDetails && movieDetails.language) || "Loading..."})</span>
+          </h1>
+          {/* Movie Genre */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            <span className="bg-pink-100 text-pink-700 px-4 py-1 rounded-full text-base font-semibold">
+              {movieDetails && movieDetails.genre || "Loading..."}
+            </span>
+          </div>
 
-        {/* Date selection */}
-        <div className="flex gap-2 mb-6 overflow-x-auto">
-          {dates.map((d, i) => (
-            <div
-              key={i}
-              className={`flex flex-col items-center px-4 py-2 rounded cursor-pointer border ${selectedDate === d.date
-                ? "bg-red-500 text-white border-red-500"
-                : "bg-gray-100 text-gray-700 border-gray-300"}`}
-              onClick={() => handleDateChange(d)}
-            >
-              <span className="font-bold">{d.day}</span>
-              <span className="text-lg">{d.date}</span>
-              <span className="text-xs">{d.month}</span>
-            </div>
-          ))}
-        </div>
-        {/* Cinema list */}
-        <div className="mt-6">
-          {loadingShowtimes ? (
-            <p>Loading showtimes...</p>
-          ) : cinemas.length > 0 ? (
-            cinemas.map((cinema, idx) => (
-              <div key={idx} className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
-                  <div className="font-semibold text-gray-800">{cinema.name}</div>
-                  <div className="text-xs text-gray-500">{cinema.info}</div>
-                </div>
-                <div className="flex flex-wrap gap-3 mt-2">
-                  {cinema.showtimes.map((showtime, i) => (
-                    <button
-                      key={showtime.showId}
-                      id={showtime.showId}
-                      className="border border-green-500 text-green-700 px-4 py-2 rounded font-semibold hover:bg-green-50 transition"
-                      onClick={() => handleShowtimeClick(cinema.id, showtime.showTime, showtime.showId)}
-                    >
-                      {showtime.showTime}
-                    </button>
-                  ))}
-                </div>
+          {/* Date selection */}
+          <div className="flex gap-3 mb-10 overflow-x-auto pb-2 border-b-2 border-pink-100">
+            {dates.map((d, i) => (
+              <div
+                key={i}
+                className={`flex flex-col items-center px-6 py-3 rounded-xl cursor-pointer border-2 font-bold min-w-[80px] transition-all duration-150 shadow-sm select-none ${selectedDate === d.date
+                  ? "bg-red-500 text-white border-red-500 scale-105 shadow-lg"
+                  : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-pink-50 hover:border-pink-300"}`}
+                onClick={() => handleDateChange(d)}
+              >
+                <span className="text-base">{d.day}</span>
+                <span className="text-2xl font-extrabold">{d.date}</span>
+                <span className="text-xs">{d.month}</span>
               </div>
-            ))
-          ) : (
-            <p>No cinemas available for the selected date.</p>
-          )}
+            ))}
+          </div>
+
+          {/* Cinema list */}
+          <div className="mt-10">
+            {loadingShowtimes ? (
+              <p className="text-lg text-gray-500">Loading showtimes...</p>
+            ) : cinemas.length > 0 ? (
+              cinemas.map((cinema, idx) => (
+                <div key={idx} className="bg-white rounded-2xl shadow-lg border-2 border-pink-100 p-8 mb-8 flex flex-col gap-4">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-4">
+                      {/* Cinema logo placeholder */}
+                      <div className="w-14 h-14 bg-pink-50 rounded-full flex items-center justify-center text-pink-500 font-extrabold text-xl border-2 border-pink-200 shadow">
+                        {cinema.name?.split(' ')[0]?.[0] || 'C'}
+                      </div>
+                      <div className="font-bold text-lg text-gray-800">{cinema.name}</div>
+                    </div>
+                    <div className="text-xs text-green-600 font-semibold flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                      {cinema.info}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-4 mt-2">
+                    {cinema.showtimes.map((showtime, i) => (
+                      <button
+                        key={showtime.showId}
+                        id={showtime.showId}
+                        className="border-2 border-green-500 text-green-700 px-6 py-3 rounded-lg font-bold text-lg bg-white hover:bg-green-50 hover:shadow-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-green-400"
+                        onClick={() => handleShowtimeClick(cinema.id, showtime.showTime, showtime.showId)}
+                      >
+                        {showtime.showTime}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-lg text-gray-500">No cinemas available for the selected date.</p>
+            )}
+          </div>
         </div>
       </div>
       <SelectSeatsModal
