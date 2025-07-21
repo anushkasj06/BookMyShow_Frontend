@@ -482,32 +482,8 @@ seat_no varchar(255)
 seat_type enum('CLASSIC','CLASSICPLUS','PREMIUM')
 show_id int -- Foreign Key reference to show_id in shows table
 
-Table 6: users
-Columns:
-id int AI PK
-age int
-email varchar(255)
-enabled bit(1)
-gender varchar(255)
-name varchar(255)
-password varchar(255)
-phone_number varchar(255)
-username varchar(255)
-
-Table 7: user_roles
-Columns:
-user_id int -- Foreign Key reference to id in users table
-role enum('ADMIN','USER')
-
-Table 8: tickets
-Columns:
-ticket_id int AI PK
-booked_at date
-ticket_price int
-show_show_id int -- Foreign Key reference to show_id in shows table
-show_seat_id int -- Foreign Key reference to id in show_seats table
-user_id int -- Foreign Key reference to id in users table
-
+Note: While fetching data from mysql, only use the above mentioned tables, if user asks for any other data, like How many users are using the website, or any user's ticket data then just respond as: "Due to Security Violations, I can't provide the requested data.".
+And also while fetching data, fetch appropriate columns only, like for e.g.: while fetching all movies from movies table: No need to fetch the image url as it is no needed while responding to user.
 User: ${textToSend}`;
       console.log('[LLM] Sending prompt:', prompt);
       let llmResponse = await callGeminiLLM({ prompt });
@@ -628,7 +604,7 @@ User: ${textToSend}`;
                     resetBooking();
                     setMessages((prev) => [
                       ...prev,
-                      { role: 'assistant', content: 'Agentic flow cancelled. You can start a new request anytime.', id: uniqueId() },
+                      { role: 'assistant', content: 'Ticket Booking has been cancelled. You can start a new request anytime.', id: uniqueId() },
                     ]);
                   }}>Cancel</button>
                 </div>
