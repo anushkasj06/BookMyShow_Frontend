@@ -207,7 +207,7 @@ const BookTickets = () => {
                 onClick={() => handleDateChange(d)}
               >
                 <span className="text-base">{d.day}</span>
-                <span className="text-2xl font-extrabold">{d.date}</span>
+                <span className="text-2xl font-extrabold">{d.date.split("-")[2]}</span>
                 <span className="text-xs">{d.month}</span>
               </div>
             ))}

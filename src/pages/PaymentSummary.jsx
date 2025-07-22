@@ -62,6 +62,8 @@ const PaymentSummary = () => {
                         ticketEntryDto: ticketEntryDto, // Send booking data to backend for booking
                     };
 
+                    console.log('[Payment] Verification payload:', verificationPayload);
+
                     const verificationResponse = await fetch(`${import.meta.env.VITE_BACKEND_API}/api/payment/verify-payment`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

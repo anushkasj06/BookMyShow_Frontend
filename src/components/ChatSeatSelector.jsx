@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ChatSeatSelector = ({ seatRows, soldSeats, selectedSeats, onSelect, seatCount }) => {
+const ChatSeatSelector = ({ seatRows, soldSeats, selectedSeats, onSelect, seatCount, onProceed }) => {
   const handleSelect = (row, num) => {
     const seatId = row + num;
     if (selectedSeats.includes(seatId)) {
@@ -38,6 +38,14 @@ const ChatSeatSelector = ({ seatRows, soldSeats, selectedSeats, onSelect, seatCo
           </div>
         ))}
       </div>
+      <button
+        className="chatbot-booking-confirm-btn"
+        style={{ marginTop: 16 }}
+        disabled={selectedSeats.length !== seatCount}
+        onClick={() => onProceed(selectedSeats)}
+      >
+        Proceed
+      </button>
     </div>
   );
 };
