@@ -211,9 +211,9 @@ const AdminTheaterList = () => {
                           <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs font-semibold">Screens: {theater.numberOfScreens}</span>
                         </div>
                         <div className="flex gap-3 mt-4 w-full justify-center">
-                          <button onClick={() => startEdit(theater)} className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-xl font-semibold shadow transition-all">Edit</button>
-                          <button onClick={() => handleDelete(theater.id)} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-semibold shadow transition-all">Delete</button>
-                          <button onClick={() => navigate(`/admin/theaters/${theater.id}/seats`)} className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-xl font-semibold shadow transition-all">Manage Seats</button>
+                          <button onClick={() => startEdit(theater)} className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1.5 rounded-lg font-semibold shadow text-sm transition-all">Edit</button>
+                          <button onClick={() => handleDelete(theater.id)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg font-semibold shadow text-sm transition-all">Delete</button>
+                          <button onClick={() => navigate(`/admin/theaters/${theater.id}/seats`)} className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg font-semibold shadow text-sm transition-all">Manage Seats</button>
                         </div>
                       </>
                     )}

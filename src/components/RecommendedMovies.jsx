@@ -30,7 +30,7 @@ const RecommendedMovies = () => {
   }, [movies]);
 
   return (
-    <section className="relative px-2 md:px-8 py-8 rounded-3xl bg-white/70 backdrop-blur-md shadow-2xl border border-white/30">
+    <>
       {/* Decorative background shapes */}
       <div className="absolute -top-10 -right-10 w-32 h-32 bg-pink-200 opacity-20 rounded-full blur-2xl pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-200 opacity-10 rounded-full blur-2xl pointer-events-none"></div>
@@ -45,7 +45,10 @@ const RecommendedMovies = () => {
           Object.entries(grouped).map(([genre, genreMovies]) => (
             <div key={genre}>
               <h3 className="text-xl md:text-2xl font-bold text-pink-600 mb-4 ml-2">{genre}</h3>
-              <div className="flex overflow-x-auto gap-6 pb-2 md:grid md:grid-cols-4 lg:grid-cols-6 md:gap-10 md:overflow-visible">
+              <div
+                className="flex overflow-x-auto gap-6 pb-2 md:grid md:grid-cols-4 lg:grid-cols-6 md:gap-10 md:overflow-visible scrollbar-thin scrollbar-thumb-pink-300 scrollbar-track-pink-100 scroll-smooth"
+                style={{ WebkitOverflowScrolling: 'touch' }}
+              >
                 {genreMovies.map((movie) => (
                   <div key={movie.id} className="min-w-[160px] md:min-w-0">
                     <MovieCard
@@ -63,7 +66,7 @@ const RecommendedMovies = () => {
           ))
         )}
       </div>
-    </section>
+    </>
   );
 };
 

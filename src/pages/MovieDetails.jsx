@@ -296,10 +296,35 @@ const MovieDetails = () => {
       {/* About Section */}
       <div className="w-full px-16 py-12 bg-white flex flex-col items-center border-b-2 border-pink-100">
         <div className="w-full max-w-5xl">
-          <h2 className="text-3xl font-extrabold mb-6 text-red-600 border-b pb-2 border-pink-200">About the Movie</h2>
-          <p className="text-gray-700 text-lg leading-relaxed mb-6">
-            <span className="font-semibold text-pink-600">{movie.movieName}</span> is a captivating {movie.genre.toLowerCase()} film delivered in {movie.language}. With a compelling storyline, powerful performances, and stunning visuals, it keeps audiences hooked from start to finish. Whether you're a fan of intense drama, thrilling suspense, or heartfelt emotion—this film delivers an unforgettable experience.
-          </p>
+          <h2 className="text-3xl font-extrabold mb-6 text-red-600 border-b pb-2 border-pink-200 flex items-center gap-3">
+            <span className="text-4xl">🎬</span> About the Movie
+          </h2>
+          <div className="flex flex-wrap gap-4 mb-4 items-center">
+            <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"><span className="text-lg">🏷️</span> {movie.genre}</span>
+            {movie.language && <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"><span className="text-lg">🌐</span> {movie.language}</span>}
+            {movie.releaseDate && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"><span className="text-lg">📅</span> {formatDate(movie.releaseDate)}</span>}
+            {movie.duration && <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"><span className="text-lg">⏱️</span> {formatDuration(movie.duration)}</span>}
+          </div>
+          <div className="bg-pink-50 border-l-4 border-pink-400 rounded-xl p-6 shadow mb-6">
+            <p className="text-gray-700 text-lg leading-relaxed mb-2">
+              <span className="font-semibold text-pink-600">{movie.movieName}</span> is a captivating <span className="font-semibold text-red-500">{movie.genre.toLowerCase()}</span> film delivered in <span className="font-semibold text-blue-500">{movie.language}</span>. With a compelling storyline, powerful performances, and stunning visuals, it keeps audiences hooked from start to finish. Whether you're a fan of intense drama, thrilling suspense, or heartfelt emotion—this film delivers an unforgettable experience.
+            </p>
+            <ul className="list-disc list-inside text-gray-600 text-base ml-2">
+              <li><span className="font-semibold text-gray-800">Release Date:</span> {formatDate(movie.releaseDate)}</li>
+              <li><span className="font-semibold text-gray-800">Duration:</span> {formatDuration(movie.duration)}</li>
+              <li><span className="font-semibold text-gray-800">Language:</span> {movie.language}</li>
+              <li><span className="font-semibold text-gray-800">Genre:</span> {movie.genre}</li>
+              {/* Optionally add director/cast if available in movie object */}
+              {movie.director && <li><span className="font-semibold text-gray-800">Director:</span> {movie.director}</li>}
+              {movie.cast && Array.isArray(movie.cast) && movie.cast.length > 0 && (
+                <li><span className="font-semibold text-gray-800">Cast:</span> {movie.cast.join(", ")}</li>
+              )}
+            </ul>
+          </div>
+          <div className="flex items-center gap-3 mt-2">
+            <span className="text-pink-500 text-2xl">⭐</span>
+            <span className="font-bold text-lg text-gray-700">{movie.rating}/10 IMDb User Rating</span>
+          </div>
         </div>
       </div>
       
