@@ -47,10 +47,41 @@ function App() {
   }
 
   useEffect(() => {
+    const abortController = new AbortController();
     const token = localStorage.getItem("token");
     if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      const checkSession = async () => {
+        try {
+          const response = await axios.get(`${import.meta.env.VITE_BACKEND_API}/signup/profile`, {
+            headers: {
+              "Authorization": "Bearer " + token,
+            },
+            signal: abortController.signal,
+          });
+          localStorage.setItem("username", response.data.username);
+          localStorage.setItem("role", response.data.roles[0]);
+          console.log(response.data.roles[0]);
+          // Set default header only on successful validation
+          axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        } catch (err) {
+          if (axios.isCancel(err)) {
+            console.log("Session check request canceled.");
+            return;
+          }
+          localStorage.removeItem("token");
+          localStorage.removeItem("username");
+          localStorage.removeItem("role");
+          delete axios.defaults.headers.common["Authorization"];
+          alert("Session expired. Please login again.");
+          window.location.href = "/login";
+        }
+      };
+      checkSession();
     }
+
+    return () => {
+      abortController.abort();
+    };
   }, []);
 
 
@@ -69,7 +100,7 @@ function App() {
             <Route path="/movie/:id/book/seats" element={<ProtectedRoute element = {<SeatSelection />} />} />
             <Route path="/booking-summary" element={<ProtectedRoute element = {<BookingSummary />} />} />
             <Route path="/profile" element={<ProtectedRoute element = {<Profile />}/>} />
-            <Route path="/admin/signup" element = {<AdminSignup />} />
+            <Route path="/admin/signup" element = {<AdminProtectedRoute element = {<AdminSignup />} />} />
             <Route path="/admin/add-movie" element={<AdminProtectedRoute element = {<AdminAddMovie />}/>} />
             <Route path="/admin/movies" element={<AdminProtectedRoute element = {<AdminMovieList />} />} />
             <Route path="/admin/dashboard" element={<AdminProtectedRoute element = {<AdminDashboard />} />} />
@@ -123,35 +154,34 @@ INSERT INTO movies (movie_name, image_url, genre, language, duration, rating, re
  Shows MYSQL DATABASE CODE: (NOTES: Ticket Cancellable - attribute needed)
 
  INSERT INTO Shows(movie_id, theatre_id, date, time) VALUES
- (3, 5, '2025-07-20', '19:15:00'),
- (3, 5, '2025-07-20', '20:15:00'),
- (3, 5, '2025-07-20', '21:30:00'),
- (3, 5, '2025-07-20', '22:30:00'),
- (3, 5, '2025-07-20', '23:30:00'),
- (3, 2, '2025-07-20', '18:45:00'),
- (3, 2, '2025-07-20', '22:15:00'),
- (3, 3, '2025-07-20', '18:45:00'),
- (3, 3, '2025-07-20', '20:00:00'),
- (3, 3, '2025-07-20', '22:00:00'),
- (3, 4, '2025-07-20', '18:45:00'),
- (3, 4, '2025-07-20', '20:00:00'),
- (3, 4, '2025-07-20', '22:00:00'),
- (3, 4, '2025-07-20', '23:15:00'),
- (4, 5, '2025-07-19', '19:15:00'),
- (4, 5, '2025-07-19', '20:15:00'),
- (4, 5, '2025-07-19', '21:30:00'),
- (4, 5, '2025-07-19', '22:30:00'),
- (4, 5, '2025-07-19', '23:30:00'),
- (4, 2, '2025-07-19', '18:45:00'),
- (4, 2, '2025-07-19', '22:15:00'),
- (4, 3, '2025-07-19', '18:45:00'),
- (4, 3, '2025-07-19', '20:00:00'),
- (4, 3, '2025-07-19', '22:00:00'),
- (4, 4, '2025-07-19', '18:45:00'),
- (4, 4, '2025-07-19', '20:00:00'),
- (4, 4, '2025-07-19', '22:00:00'),
- (4, 4, '2025-07-19', '23:15:00');
-
+ (3, 5, '2025-07-25', '19:15:00'),
+ (3, 5, '2025-07-25', '20:15:00'),
+ (3, 5, '2025-07-25', '21:30:00'),
+ (3, 5, '2025-07-25', '22:30:00'),
+ (3, 5, '2025-07-25', '23:30:00'),
+ (3, 2, '2025-07-25', '18:45:00'),
+ (3, 2, '2025-07-25', '22:15:00'),
+ (3, 3, '2025-07-25', '18:45:00'),
+ (3, 3, '2025-07-25', '20:00:00'),
+ (3, 3, '2025-07-25', '22:00:00'),
+ (3, 4, '2025-07-25', '18:45:00'),
+ (3, 4, '2025-07-25', '20:00:00'),
+ (3, 4, '2025-07-25', '22:00:00'),
+ (3, 4, '2025-07-25', '23:15:00'),
+ (4, 5, '2025-07-26', '19:15:00'),
+ (4, 5, '2025-07-26', '20:15:00'),
+ (4, 5, '2025-07-26', '21:30:00'),
+ (4, 5, '2025-07-26', '22:30:00'),
+ (4, 5, '2025-07-26', '23:30:00'),
+ (4, 2, '2025-07-26', '18:45:00'),
+ (4, 2, '2025-07-26', '22:15:00'),
+ (4, 3, '2025-07-26', '18:45:00'),
+ (4, 3, '2025-07-26', '20:00:00'),
+ (4, 3, '2025-07-26', '22:00:00'),
+ (4, 4, '2025-07-26', '18:45:00'),
+ (4, 4, '2025-07-26', '20:00:00'),
+ (4, 4, '2025-07-26', '22:00:00'),
+ (4, 4, '2025-07-26', '23:15:00');
 
 
  Theater-seats MSQL:

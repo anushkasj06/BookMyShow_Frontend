@@ -28,9 +28,9 @@ const Login = () => {
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_API}/signup/login`,
-        null,
         {
-          auth: { username, password },
+          username,
+          password
         }
       );
       if (response.status === 200) {
