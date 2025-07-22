@@ -508,7 +508,7 @@ User: ${textToSend}`;
           }
           setMessages((prev) => [
             ...prev,
-            { role: 'assistant', content: `Here is the data you requested:<br/>${formatted}`, id: uniqueId() },
+            { role: 'assistant', content: `Here is what you want:<br/>${formatted}`, id: uniqueId() },
           ]);
         } catch (err) {
           console.error('[DB] SQL error:', err);
