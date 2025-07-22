@@ -5,7 +5,7 @@ import RecommendedMovies from "../components/RecommendedMovies";
 import Footer from "../components/Footer";
 
 const Home = () => (
-  <div className="relative min-h-screen flex flex-col bg-gradient-to-br from-pink-100 via-blue-50 to-blue-200 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', overflowY: 'scroll' }}>
+  <div id="home" className="relative min-h-screen flex flex-col bg-gradient-to-br from-pink-100 via-blue-50 to-blue-200">
     {/* Hide scrollbar for all browsers */}
     <style>{`
       .scrollbar-hide::-webkit-scrollbar { display: none; }
