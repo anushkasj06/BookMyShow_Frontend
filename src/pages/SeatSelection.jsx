@@ -9,11 +9,6 @@ function useQuery() {
     return new URLSearchParams(useLocation().search);
 }
 
-// --- MODIFICATION START ---
-// The old modals (PaymentModal, ConfirmationModal, TicketBookingFailedModal) are no longer needed
-// and have been removed. The Razorpay checkout will serve as the payment modal.
-// --- MODIFICATION END ---
-
 const SeatSelection = () => {
     const query = useQuery();
     const navigate = useNavigate();
@@ -29,17 +24,15 @@ const SeatSelection = () => {
     const [userId, setUserId] = useState(null);
     const [movie, setMovie] = useState("");
     const [theatre, setTheatre] = useState("");
-    
+
     // Data fetching states
     const [seatRows, setSeatRows] = useState(null);
     const [soldSeats, setSoldSeats] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // --- MODIFICATION START ---
     // New state variables to manage the payment flow and UI feedback
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
     const [statusMessage, setStatusMessage] = useState("");
-    // --- MODIFICATION END ---
 
     // --- DATA FETCHING (useEffect hooks are unchanged) ---
     useEffect(() => {
@@ -121,7 +114,6 @@ const SeatSelection = () => {
         return sum + (row ? row.price : 0);
     }, 0);
 
-    // --- MODIFICATION START ---
     // This is the new, integrated payment and booking handler.
     const handleProceedToPayment = async () => {
         if (selectedSeats.length !== count) {
@@ -135,12 +127,12 @@ const SeatSelection = () => {
         const ticketEntryDto = {
             showId: showId,
             userId: userId,
-             requestSeats: selectedSeats, // Make sure your backend DTO expects 'seatNos'
+            requestSeats: selectedSeats, // Make sure your backend DTO expects 'seatNos'
         };
 
         try {
             // Step 1: Create Razorpay Order from your backend
-            const orderResponse = await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/create-order`, 
+            const orderResponse = await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/create-order`,
                 { amount: totalAmount },
                 { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } }
             );
@@ -165,13 +157,13 @@ const SeatSelection = () => {
                     };
 
                     try {
-                        const verificationResponse = await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/verify-payment`, 
+                        const verificationResponse = await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/verify-payment`,
                             verificationPayload,
                             { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } }
                         );
                         setStatusMessage("Booking Confirmed! Redirecting...");
                         setTimeout(() => {
-                           navigate(`/profile`); // Navigate to a profile or ticket history page
+                            navigate(`/profile`); // Navigate to a profile or ticket history page
                         }, 3000);
                     } catch (verificationError) {
                         console.error("Payment verification failed:", verificationError);
@@ -200,7 +192,6 @@ const SeatSelection = () => {
             setIsProcessingPayment(false);
         }
     };
-    // --- MODIFICATION END ---
 
     // --- RENDER LOGIC ---
     if (loading) {
@@ -211,72 +202,122 @@ const SeatSelection = () => {
         );
     }
 
+    // Function to determine if a seat is a bestseller (deterministic: first 2 seats in rows A, B, C)
+    const isBestsellerSeat = (rowLabel, seatNumber) => {
+        if (["A", "B", "C"].includes(rowLabel) && seatNumber <= 2) {
+            return true;
+        }
+        return false;
+    };
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-blue-50 to-purple-100 flex flex-col">
+        <div className="min-h-screen bg-gradient-to-br from-pink-200 via-blue-100 to-purple-200 flex flex-col font-sans">
             <Navbar />
-            <div className="flex-1 max-w-6xl mx-auto w-full py-8 px-4">
-                <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-8 border border-white/30">
-                    <div className="flex items-center justify-between mb-8">
+            <div className="flex-1 max-w-5xl mx-auto w-full py-10 px-4">
+                <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/40">
+                    <div className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4">
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-800">{movie}</h2>
-                            <p className="text-gray-600 text-sm">{theatre} • {time}</p>
+                            <h2 className="text-3xl font-extrabold text-gray-800 drop-shadow-lg">{movie}</h2>
+                            <p className="text-gray-600 text-base font-medium mt-1">{theatre} • {time}</p>
                         </div>
-                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-2xl font-bold shadow-lg">
+                        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-8 py-4 rounded-2xl font-bold shadow-lg text-lg">
                             {selectedSeats.length} / {count} Tickets
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto pb-6">
                         {seatRows.map((row) => (
-                            <div key={row.label} className="flex items-center mb-4">
-                                <span className="w-12 font-bold text-gray-700">{row.label}</span>
-                                <div className="flex gap-3 ml-4">
+                            <div key={row.label} className="flex items-center mb-6">
+                                <span className="w-12 font-black text-xl text-gray-700 drop-shadow-sm flex-shrink-0">{row.label}</span>
+                                <div className="flex flex-wrap gap-3 ml-4 flex-1">
                                     {Array.from({ length: row.count }, (_, i) => {
                                         const seatId = row.label + (i + 1);
                                         const isSold = soldSeats.includes(seatId);
                                         const isSelected = selectedSeats.includes(seatId);
-                                        let seatClasses = "w-10 h-10 border-2 rounded-lg flex items-center justify-center font-bold transition-all duration-200";
-                                        if (isSold) seatClasses += " bg-gray-400 cursor-not-allowed";
-                                        else if (isSelected) seatClasses += " bg-green-500 text-white scale-110";
-                                        else seatClasses += " bg-gray-200 hover:bg-green-200";
+                                        const isBestseller = isBestsellerSeat(row.label, i + 1);
+
+                                        let seatClasses = "w-10 h-10 border-2 rounded-lg flex items-center justify-center text-base font-bold transition-all duration-200 shadow-md relative";
+                                        if (isSold) seatClasses += " bg-gray-400 text-gray-700 cursor-not-allowed border-gray-400";
+                                        else if (isSelected) seatClasses += " bg-gradient-to-br from-green-400 to-green-600 text-white scale-110 border-green-600 z-10";
+                                        else if (isBestseller) seatClasses += " bg-yellow-300 text-yellow-900 border-yellow-500 hover:bg-yellow-400 animate-pulse";
+                                        else seatClasses += " bg-gray-100 hover:bg-pink-200 border-gray-300 hover:border-pink-400";
+
                                         return (
-                                            <button key={seatId} disabled={isSold} onClick={() => handleSelectSeat(row.label, i + 1)} className={seatClasses}>
+                                            <button
+                                                key={seatId}
+                                                disabled={isSold}
+                                                onClick={() => handleSelectSeat(row.label, i + 1)}
+                                                className={seatClasses}
+                                                style={{ position: "relative" }}
+                                            >
                                                 {i + 1}
+                                                {isBestseller && !isSold && (
+                                                    <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-yellow-400 rounded-full border-2 border-yellow-600 shadow"></span>
+                                                )}
                                             </button>
                                         );
                                     })}
                                 </div>
+                                <div className="ml-6 flex flex-col items-end flex-shrink-0 gap-1">
+                                    <span className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 text-white text-xs font-bold shadow">{row.type}</span>
+                                    <span className="px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 text-xs font-semibold shadow border border-pink-200 mt-1">₹{row.price}</span>
+                                </div>
                             </div>
                         ))}
                     </div>
-                    
-                    <div className="text-center my-6">
-                        <div className="h-2 bg-gray-300 w-full max-w-md mx-auto rounded-full relative">
-                           <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-red-400 rounded-full opacity-50 blur-md"></div>
-                           <p className="absolute -bottom-6 w-full text-gray-600 font-bold">SCREEN THIS WAY</p>
+
+                    <div className="text-center my-10">
+                        <div className="h-3 bg-gradient-to-r from-pink-400 to-red-400 w-full max-w-lg mx-auto rounded-full relative shadow-lg">
+                            <div className="absolute inset-0 bg-gradient-to-r from-pink-400 to-red-400 rounded-full opacity-40 blur-md"></div>
+                            <p className="absolute -bottom-7 w-full text-gray-700 font-extrabold tracking-widest text-base drop-shadow">SCREEN THIS WAY</p>
                         </div>
                     </div>
 
-                    {/* --- MODIFICATION START --- */}
-                    {/* Display Status Message and updated Pay Button */}
-                    <div className="mt-8 flex flex-col items-end gap-4">
+                    {/* Legend */}
+                    <div className="mt-10 p-6 bg-white/70 rounded-2xl text-base flex flex-wrap gap-8 justify-center shadow border border-white/30">
+                        <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-lg border-2 border-green-600"></span>
+                            <span className="font-semibold text-gray-700">Selected</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 bg-gray-400 rounded-lg border-2 border-gray-400"></span>
+                            <span className="font-semibold text-gray-700">Sold</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 bg-yellow-300 rounded-lg border-2 border-yellow-500 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-yellow-900" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.122-6.545L.488 6.91l6.561-.955L10 0l2.951 5.955 6.561.955-4.756 4.635 1.122 6.545z"/></svg>
+                            </span>
+                            <span className="font-semibold text-gray-700">Bestseller</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 bg-gray-100 rounded-lg border-2 border-gray-300"></span>
+                            <span className="font-semibold text-gray-700">Available</span>
+                        </div>
+                    </div>
+
+                    {/* Status Message and Pay Button */}
+                    <div className="mt-10 flex flex-col items-end gap-4">
                         {statusMessage && (
-                            <div className={`p-3 rounded-lg text-center font-semibold w-full max-w-md ${statusMessage.includes('Confirmed') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            <div className={`p-4 rounded-xl text-center font-semibold w-full max-w-md shadow-lg border-2 ${statusMessage.includes('Confirmed') ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}`}>
                                 {statusMessage}
                             </div>
                         )}
                         <button
-                            className="bg-gradient-to-r from-pink-500 to-red-500 text-white px-10 py-4 rounded-2xl font-bold text-xl transition-all duration-300 shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-gradient-to-r from-pink-500 to-red-500 text-white px-12 py-5 rounded-2xl font-extrabold text-2xl transition-all duration-300 shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
                             disabled={selectedSeats.length !== count || isProcessingPayment || statusMessage.includes('Confirmed')}
                             onClick={handleProceedToPayment}
                         >
-                            {isProcessingPayment 
-                                ? "Processing..." 
+                            {isProcessingPayment
+                                ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                                        Processing...
+                                    </div>
+                                )
                                 : `Pay ₹${totalAmount}`
                             }
                         </button>
                     </div>
-                    {/* --- MODIFICATION END --- */}
                 </div>
             </div>
             <Footer />
