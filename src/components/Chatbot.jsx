@@ -84,11 +84,34 @@ function ChatTicketSummary({ summary, onViewTickets }) {
   );
 }
 
+// Add ChatPaymentSummary component
+function ChatPaymentSummary({ summary, onPay, isPaying, error }) {
+  if (!summary) return null;
+  return (
+    <div className="chatbot-booking-summary">
+      <div className="chatbot-booking-summary-title">Payment Summary</div>
+      <div className="chatbot-booking-summary-details">
+        <div><strong>Movie:</strong> {summary.movie}</div>
+        <div><strong>Theater:</strong> {summary.theater}</div>
+        <div><strong>Time:</strong> {summary.time}</div>
+        <div><strong>Seats:</strong> {summary.seats.join(', ')}</div>
+        <div><strong>Total:</strong> ₹{summary.amount}</div>
+      </div>
+      {error && <div style={{ color: '#e11d48', marginBottom: 8 }}>{error}</div>}
+      <button className="chatbot-booking-confirm-btn" onClick={onPay} disabled={isPaying}>
+        {isPaying ? 'Processing...' : 'Pay Now'}
+      </button>
+    </div>
+  );
+}
+
 const Chatbot = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false); // NEW: maximized/fullscreen state
   const [showTicket, setShowTicket] = useState(false); // <-- Fix: define showTicket state here
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
   const [messages, setMessages] = useState(() => {
     try {
       const saved = localStorage.getItem('chatMessages');
@@ -96,7 +119,7 @@ const Chatbot = () => {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch {}
+    } catch { }
     return [initialMessage];
   });
   const [input, setInput] = useState('');
@@ -140,7 +163,7 @@ const Chatbot = () => {
   useEffect(() => {
     try {
       localStorage.setItem('chatMessages', JSON.stringify(messages));
-    } catch {}
+    } catch { }
   }, [messages]);
 
   useEffect(() => {
@@ -238,6 +261,7 @@ const Chatbot = () => {
       }
       if (bookingStep === 'seatCount') {
         setSeatCount(userInput);
+        console.log('[Agentic Flow] Seat count:', userInput);
         const theaterId = selectedTheater.id || selectedTheater;
         const showId = selectedShowtime.showId || selectedShowtime;
         console.log('[AgenticFlow] Fetching seat map for theater:', theaterId, 'show:', showId);
@@ -271,8 +295,12 @@ const Chatbot = () => {
           seats: userInput,
           amount: total,
         });
-        setBookingStep('confirm');
-        setMessages((prev) => [...prev, { role: 'assistant', content: `Here is your booking summary.`, id: uniqueId() }]);
+        setBookingStep('payment'); // <-- Go to payment step
+        setMessages((prev) => [...prev, { role: 'assistant', content: `Please review your booking and proceed to payment.`, id: uniqueId() }]);
+        return;
+      }
+      if (bookingStep === 'payment') {
+        await handlePayment();
         return;
       }
       if (bookingStep === 'confirm') {
@@ -412,7 +440,7 @@ Respond in this JSON format ONLY (no markdown):
 
 COMMANDS:
 - search_movie: { query }
-- view_movie: { input }
+- view_movie: { input: <'id' of the movie> }
 - book_ticket: { input }
 - go_home: {}
 - go_profile: {}
@@ -439,47 +467,47 @@ Tables:
 
 Table 1: movies
 Columns:
-id int AI PK
-duration int
-genre enum('ACTION','ANIMATION','COMEDY','DRAMA','HISTORICAL','ROMANTIC','SOCIAL','SPORTS','THRILLER','WAR')
-image_url varchar(255)
-language enum('ENGLISH','HINDI','KANNADA','MARATHI','PUNJAB','TAMIL','TELUGU')
-movie_name varchar(255)
-rating double
+id int AI PK 
+duration int 
+genre enum('ACTION','ANIMATION','COMEDY','DRAMA','HISTORICAL','ROMANTIC','SOCIAL','SPORTS','THRILLER','WAR') 
+image_url varchar(255) 
+language enum('ENGLISH','HINDI','KANNADA','MARATHI','PUNJAB','TAMIL','TELUGU') 
+movie_name varchar(255) 
+rating double 
 release_date date
 
 Table 2: theaters
 Columns:
-id int AI PK
-address varchar(255)
-city varchar(255)
-name varchar(255)
+id int AI PK 
+address varchar(255) 
+city varchar(255) 
+name varchar(255) 
 number_of_screens int
 
 Table 3: theater_seats
 Columns:
-id int AI PK
-row_label varchar(255)
-seat_count int
-seat_type enum('CLASSIC','CLASSICPLUS','PREMIUM')
+id int AI PK 
+row_label varchar(255) 
+seat_count int 
+seat_type enum('CLASSIC','CLASSICPLUS','PREMIUM') 
 theater_id int -- Foreign Key reference to id in theaters table
 
 Table 4: shows
 Columns:
-show_id int AI PK
-date date
-time time(6)
+show_id int AI PK 
+date date 
+time time(6) 
 movie_id int -- Foreign Key reference to id in movies table
 theatre_id int -- Foreign Key reference to id in theaters table
 
 Table 5: show_seats
 Columns:
-id int AI PK
-is_available bit(1)
-is_food_contains bit(1)
-price int
-seat_no varchar(255)
-seat_type enum('CLASSIC','CLASSICPLUS','PREMIUM')
+id int AI PK 
+is_available bit(1) 
+is_food_contains bit(1) 
+price int 
+seat_no varchar(255) 
+seat_type enum('CLASSIC','CLASSICPLUS','PREMIUM') 
 show_id int -- Foreign Key reference to show_id in shows table
 
 Note: While fetching data from mysql, only use the above mentioned tables, if user asks for any other data, like How many users are using the website, or any user's ticket data then just respond as: "Due to Security Violations, I can't provide the requested data.".
@@ -538,6 +566,90 @@ User: ${textToSend}`;
     }
   };
 
+  // Payment handler
+  const handlePayment = async () => {
+    setIsPaying(true);
+    setPaymentError('');
+    try {
+      // 1. Create Razorpay order
+      const orderResponse = await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/create-order`,
+        { amount: bookingSummary.amount },
+        { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } }
+      );
+      const orderData = orderResponse.data;
+      console.log('[Payment] Order data:', orderData);
+      // 2. Open Razorpay
+      const options = {
+        key: 'rzp_test_4DotYCe9Ux9uOT', // <-- Replace with your Razorpay key
+        amount: orderData.amount,
+        currency: 'INR',
+        name: 'BookMyShow Clone',
+        description: `Tickets for ${bookingSummary.movie}`,
+        order_id: orderData.id,
+        handler: async function (response) {
+          // 3. Verify payment and book ticket
+          setIsPaying(true);
+          setPaymentError('');
+          try {
+            const verificationPayload = {
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              ticketEntryDto: {
+                showId: selectedShowtime.showId,
+                userId,
+                requestSeats: selectedSeats,
+              },
+            };
+            try {
+              const verificationResponse = await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/verify-payment`,
+                verificationPayload,
+                { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } }
+              );
+              const resultMessage = verificationResponse.data;
+              if (verificationResponse.status === 200) {
+                setBookingStep('completed');
+                setShowTicket(true);
+                setMessages((prev) => [...prev, { role: 'assistant', content: `Booking successful! Here is your ticket.`, id: uniqueId() }]);
+    } else {
+                setPaymentError(resultMessage);
+                setIsPaying(false);
+              }
+            } catch (err) {
+              console.error("Payment verification failed:", err);
+              setPaymentError("Payment verification failed. Please contact support.");
+              setIsPaying(false);
+            }
+          } catch (verificationError) {
+            console.error("Payment verification failed:", verificationError);
+            setPaymentError("Payment verification failed. Please contact support.");
+            setIsPaying(false);
+          }
+          finally {
+            setIsPaying(false);
+          }
+        },
+        prefill: {
+          name: 'Test User',
+          email: 'test.user@example.com',
+        },
+        theme: { color: '#e11d48' },
+      };
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+      paymentObject.on('payment.failed', function (response) {
+        setPaymentError(`Payment Failed: ${response.error.description}`);
+        setIsPaying(false);
+      });
+    } catch (err) {
+      setPaymentError('Could not initiate payment. Please try again.');
+      setIsPaying(false);
+    }
+    finally {
+      setIsPaying(false);
+    }
+  };
+
 
   const handleChatToggle = () => {
     (localStorage.getItem("token")) ? setIsOpen((o) => !o) : navigate('/login');
@@ -556,7 +668,7 @@ User: ${textToSend}`;
               <button onClick={() => setIsMaximized(m => !m)} className="maximize-btn" title={isMaximized ? 'Restore' : 'Maximize'}>
                 {isMaximized ? '🗗' : '🗖'}
               </button>
-              
+
             </div>
           </div>
           <div className="chat-messages">
@@ -576,7 +688,7 @@ User: ${textToSend}`;
                     {movieSearchResults.map((movie) => (
                       <button key={movie.id} className="chatbot-movie-btn" onClick={() => handleAgenticFlow(movie)}>
                         {movie.movieName} ({movie.language}, {movie.genre})
-                      </button>
+                  </button>
                     ))}
                   </div>
                 )}
@@ -593,7 +705,26 @@ User: ${textToSend}`;
                   <div className="chatbot-ui-wrapper"><ChatSeatCountSelector onSelect={handleAgenticFlow} selectedCount={seatCount} /></div>
                 )}
                 {bookingStep === 'seats' && (
-                  <div className="chatbot-ui-wrapper"><ChatSeatSelector seatRows={seatRows} soldSeats={soldSeats} selectedSeats={selectedSeats} onSelect={handleAgenticFlow} seatCount={seatCount} /></div>
+                  <div className="chatbot-ui-wrapper">
+                    <ChatSeatSelector
+                      seatRows={seatRows}
+                      soldSeats={soldSeats}
+                      selectedSeats={selectedSeats}
+                      onSelect={setSelectedSeats}
+                      seatCount={seatCount}
+                      onProceed={handleAgenticFlow}
+                    />
+                  </div>
+                )}
+                {bookingStep === 'payment' && bookingSummary && (
+                  <div className="chatbot-ui-wrapper">
+                    <ChatPaymentSummary
+                      summary={bookingSummary}
+                      onPay={handlePayment}
+                      isPaying={isPaying}
+                      error={paymentError}
+                    />
+                  </div>
                 )}
                 {bookingStep === 'confirm' && bookingSummary && (
                   <div className="chatbot-ui-wrapper"><ChatBookingSummary {...bookingSummary} onConfirm={() => handleAgenticFlow('confirm')} /></div>

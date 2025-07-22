@@ -169,6 +169,10 @@ const SeatSelection = () => {
                         console.error("Payment verification failed:", verificationError);
                         setStatusMessage("Payment verification failed. Please contact support.");
                     }
+                    finally {
+                        setIsProcessingPayment(false);
+                        setStatusMessage("");
+                    }
                 },
                 prefill: {
                     name: "Test User",
@@ -190,6 +194,7 @@ const SeatSelection = () => {
             setStatusMessage("Could not initiate payment. Please try again.");
         } finally {
             setIsProcessingPayment(false);
+            setStatusMessage("");
         }
     };
 
@@ -229,7 +234,7 @@ const SeatSelection = () => {
                         {seatRows.map((row) => (
                             <div key={row.label} className="flex items-center mb-6">
                                 <span className="w-12 font-black text-xl text-gray-700 drop-shadow-sm flex-shrink-0">{row.label}</span>
-                                <div className="flex flex-wrap gap-3 ml-4 flex-1">
+                                <div className="flex flex-wrap gap-3 ml-4 flex-1 justify-center">
                                     {Array.from({ length: row.count }, (_, i) => {
                                         const seatId = row.label + (i + 1);
                                         const isSold = soldSeats.includes(seatId);
