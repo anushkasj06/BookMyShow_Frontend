@@ -27,7 +27,6 @@ const AdminShowList = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // --- NEW: State for Associate Seats Modal ---
   const [showSeatPriceModal, setShowSeatPriceModal] = useState(false);
   const [seatPricesForm, setSeatPricesForm] = useState({
     showId: null,
@@ -78,8 +77,8 @@ const AdminShowList = () => {
     setEditForm({
       movieId: show.movie?.id ? String(show.movie.id) : "",
       theaterId: show.theatre?.id ? String(show.theatre.id) : "",
-      date: show.date ? show.date : "",
-      time: show.time ? show.time.slice(0,5) : ""
+      date: show.date || "",
+      time: show.time ? show.time.slice(0, 5) : ""
     });
     setMessage("");
     setError("");
@@ -151,7 +150,6 @@ const AdminShowList = () => {
     }
   };
 
-  // --- NEW: Handlers for Seat Association ---
   const handleAssociateClick = (showId) => {
     setSeatPricesForm({ ...seatPricesForm, showId });
     setShowSeatPriceModal(true);
@@ -203,15 +201,8 @@ const AdminShowList = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-blue-50 to-blue-200 flex flex-col relative">
-      {/* Animated/floating background shapes */}
-      <div className="absolute inset-0 -z-10 pointer-events-none">
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-pink-200 opacity-30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-1/2 right-0 w-80 h-80 bg-blue-200 opacity-20 rounded-full blur-2xl animate-bounce"></div>
-        <div className="absolute bottom-0 left-1/3 w-72 h-72 bg-yellow-100 opacity-20 rounded-full blur-2xl animate-pulse"></div>
-      </div>
       <Navbar />
       <div className="flex flex-1 w-full max-w-8xl mx-auto">
-        {/* Sidebar */}
         <aside className="hidden md:flex flex-col w-60 min-h-full py-10 px-4 bg-white/70 backdrop-blur-md border-r border-gray-200 shadow-2xl rounded-tr-3xl rounded-br-3xl mt-8 mb-8 mr-6">
           <div className="flex flex-col items-center mb-10">
             <span className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-red-400 flex items-center justify-center text-white text-2xl font-extrabold border-2 border-pink-200 shadow-lg mb-2">
@@ -232,13 +223,9 @@ const AdminShowList = () => {
             ))}
           </nav>
         </aside>
-        {/* Main Content */}
         <main className="flex-1 py-12 px-2 md:px-10">
           <h2 className="text-4xl md:text-5xl font-extrabold mb-10 text-pink-600 text-center tracking-tight drop-shadow-lg">Show List</h2>
           <div className="rounded-3xl bg-white/80 backdrop-blur-md shadow-2xl p-10 border-l-8 border-pink-500 mb-10 relative overflow-hidden min-h-[60vh] flex flex-col">
-            {/* Decorative shapes */}
-            <div className="absolute -top-8 -right-8 w-32 h-32 bg-pink-200 opacity-20 rounded-full blur-2xl pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-200 opacity-10 rounded-full blur-2xl pointer-events-none"></div>
             {loading ? (
               <div className="text-center py-10 text-xl font-bold text-pink-600 animate-pulse">Loading shows...</div>
             ) : error ? (
@@ -279,15 +266,9 @@ const AdminShowList = () => {
                             <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs font-semibold">{show.time ? show.time.slice(0,5) : ""}</span>
                           </div>
                           <div className="flex gap-3 mt-4 w-full justify-center">
-<<<<<<< HEAD
                             <button title="Edit" onClick={() => handleEdit(show)} className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-xl font-semibold shadow transition-all">✏</button>
                             <button title="Delete" onClick={() => handleDelete(show.showId)} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-semibold shadow transition-all">🗑️</button>
                             <button title="Associate Seats" onClick={() => handleAssociateClick(show.showId)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl font-semibold shadow transition-all" disabled={submitting}>🎫</button>
-=======
-                            <button onClick={() => handleEdit(show)} className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1.5 rounded-lg font-semibold shadow text-sm transition-all">Edit</button>
-                            <button onClick={() => handleDelete(show.showId)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg font-semibold shadow text-sm transition-all">Delete</button>
-                            <button onClick={() => handleAssociateClick(show.showId)} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg font-semibold shadow text-sm transition-all" disabled={submitting}>Associate Seats</button>
->>>>>>> 24ec743 (Push my local code changes)
                           </div>
                         </>
                       )}
@@ -299,7 +280,7 @@ const AdminShowList = () => {
             {message && <div className="text-center mt-4 text-lg font-semibold text-green-600">{message}</div>}
             {error && <div className="text-center mt-4 text-lg font-semibold text-red-600">{error}</div>}
           </div>
-          {/* --- NEW: Seat Price Association Modal --- */}
+
           {showSeatPriceModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
@@ -309,58 +290,23 @@ const AdminShowList = () => {
                     <label className="block text-gray-700 font-medium mb-2" htmlFor="priceOfPremiumSeat">
                       Premium Seat Price
                     </label>
-                    <input
-                      type="number"
-                      id="priceOfPremiumSeat"
-                      name="priceOfPremiumSeat"
-                      value={seatPricesForm.priceOfPremiumSeat}
-                      onChange={handleSeatPriceChange}
-                      required
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
+                    <input type="number" id="priceOfPremiumSeat" name="priceOfPremiumSeat" value={seatPricesForm.priceOfPremiumSeat} onChange={handleSeatPriceChange} required className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" />
                   </div>
                   <div className="mb-4">
                     <label className="block text-gray-700 font-medium mb-2" htmlFor="priceOfClassicPlusSeat">
                       Classic Plus Seat Price
                     </label>
-                    <input
-                      type="number"
-                      id="priceOfClassicPlusSeat"
-                      name="priceOfClassicPlusSeat"
-                      value={seatPricesForm.priceOfClassicPlusSeat}
-                      onChange={handleSeatPriceChange}
-                      required
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
+                    <input type="number" id="priceOfClassicPlusSeat" name="priceOfClassicPlusSeat" value={seatPricesForm.priceOfClassicPlusSeat} onChange={handleSeatPriceChange} required className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" />
                   </div>
                   <div className="mb-4">
                     <label className="block text-gray-700 font-medium mb-2" htmlFor="priceOfClassicSeat">
                       Classic Seat Price
                     </label>
-                    <input
-                      type="number"
-                      id="priceOfClassicSeat"
-                      name="priceOfClassicSeat"
-                      value={seatPricesForm.priceOfClassicSeat}
-                      onChange={handleSeatPriceChange}
-                      required
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
+                    <input type="number" id="priceOfClassicSeat" name="priceOfClassicSeat" value={seatPricesForm.priceOfClassicSeat} onChange={handleSeatPriceChange} required className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" />
                   </div>
                   <div className="flex justify-end space-x-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowSeatPriceModal(false)}
-                      className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
-                      disabled={submitting}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="bg-green-500 size-3.5 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-                      disabled={submitting}
-                    >
+                    <button type="button" onClick={() => setShowSeatPriceModal(false)} className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors" disabled={submitting}>Cancel</button>
+                    <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors" disabled={submitting}>
                       {submitting ? "Associating..." : "Associate Seats"}
                     </button>
                   </div>
