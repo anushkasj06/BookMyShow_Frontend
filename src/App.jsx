@@ -69,7 +69,7 @@ function App() {
             <Route path="/movie/:id/book/seats" element={<ProtectedRoute element = {<SeatSelection />} />} />
             <Route path="/booking-summary" element={<ProtectedRoute element = {<BookingSummary />} />} />
             <Route path="/profile" element={<ProtectedRoute element = {<Profile />}/>} />
-            <Route path="/admin/signup" element={<AdminProtectedRoute element = {<AdminSignup />} /> } />
+            <Route path="/admin/signup" element = {<AdminSignup />} />
             <Route path="/admin/add-movie" element={<AdminProtectedRoute element = {<AdminAddMovie />}/>} />
             <Route path="/admin/movies" element={<AdminProtectedRoute element = {<AdminMovieList />} />} />
             <Route path="/admin/dashboard" element={<AdminProtectedRoute element = {<AdminDashboard />} />} />
@@ -78,7 +78,7 @@ function App() {
             <Route path="/admin/theaters/:theaterId/seats" element={<AdminProtectedRoute element = {<AdminTheaterSeats/>} />} />
             <Route path="/admin/add-show" element={<AdminProtectedRoute element = {<AdminAddShow/>} />} />
             <Route path="/admin/shows" element={<AdminProtectedRoute element = {<AdminShowList/>} />} />
-                        <Route path="/search-results" element={<SearchResults />} />
+            <Route path="/search-results" element={<SearchResults />} />
             <Route path="/theater/:theaterId" element={<TheaterDetails />} />
             <Route path="/admin/show-list" element={<AdminProtectedRoute element = {<AdminShowList/>} />} />
             <Route path="/admin/associate-seats/:showId" element={<AdminProtectedRoute element = {<AssociateShowSeats/>} />} /> {/* New Route */}
