@@ -266,9 +266,9 @@ const AdminShowList = () => {
                             <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs font-semibold">{show.time ? show.time.slice(0,5) : ""}</span>
                           </div>
                           <div className="flex gap-3 mt-4 w-full justify-center">
-                            <button title="Edit" onClick={() => handleEdit(show)} className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-xl font-semibold shadow transition-all">✏</button>
-                            <button title="Delete" onClick={() => handleDelete(show.showId)} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-semibold shadow transition-all">🗑️</button>
-                            <button title="Associate Seats" onClick={() => handleAssociateClick(show.showId)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl font-semibold shadow transition-all" disabled={submitting}>🎫</button>
+                            <button title="Edit" onClick={() => handleEdit(show)} className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1.2 rounded-xl font-bold shadow-lg border-2 border-yellow-300 hover:scale-110 hover:shadow-2xl transition-all">Edit</button>
+                            <button title="Delete" onClick={() => handleDelete(show.showId)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.2 rounded-xl font-bold shadow-lg border-2 border-red-300 hover:scale-110 hover:shadow-2xl transition-all">Delete</button>
+                            <button title="Associate Seats" onClick={() => handleAssociateClick(show.showId)} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.2 rounded-xl font-bold shadow-lg border-2 border-green-300 hover:scale-110 hover:shadow-2xl transition-all" disabled={submitting}>Associate Seats</button>
                           </div>
                         </>
                       )}

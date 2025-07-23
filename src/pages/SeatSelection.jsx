@@ -10,31 +10,35 @@ function useQuery() {
 }
 
 const SeatSelection = () => {
+    const { state } = useLocation();
     const query = useQuery();
     const navigate = useNavigate();
+    const { id: movieId } = useParams();
+
+    // --- MODE DETERMINATION (BOOKING VS. UPDATING) ---
+    // Check if we are in "update mode" by looking at the navigation state
+    const isUpdateMode = state?.isUpdateMode || false;
+    const originalTicketId = state?.originalTicketId || null;
+    const originalFare = state?.originalFare || 0;
 
     // --- STATE MANAGEMENT ---
-    const count = parseInt(query.get("count"));
-    const theaterId = parseInt(query.get("theatre"));
-    const showId = parseInt(query.get("showId"));
-    const time = query.get("time");
-    const { id: movieId } = useParams();
+    // Get booking details from URL query (for booking mode) or location state (for update mode)
+    const count = isUpdateMode ? 1 : parseInt(query.get("count"));
+    const theaterId = isUpdateMode ? state.theaterId : parseInt(query.get("theatre"));
+    const showId = isUpdateMode ? state.newShowId : parseInt(query.get("showId"));
+    const time = isUpdateMode ? state.time : query.get("time");
 
     const [selectedSeats, setSelectedSeats] = useState([]);
     const [userId, setUserId] = useState(null);
     const [movie, setMovie] = useState("");
     const [theatre, setTheatre] = useState("");
-
-    // Data fetching states
     const [seatRows, setSeatRows] = useState(null);
     const [soldSeats, setSoldSeats] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    // New state variables to manage the payment flow and UI feedback
-    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [statusMessage, setStatusMessage] = useState("");
 
-    // --- DATA FETCHING (useEffect hooks are unchanged) ---
+    // --- DATA FETCHING (Unchanged) ---
     useEffect(() => {
         const fetchSeatData = async () => {
             setLoading(true);
@@ -64,7 +68,7 @@ const SeatSelection = () => {
             }
             setLoading(false);
         };
-        fetchSeatData();
+        if (theaterId && showId) fetchSeatData();
     }, [theaterId, showId]);
 
     useEffect(() => {
@@ -94,7 +98,7 @@ const SeatSelection = () => {
                 console.error("Error fetching movie and theater data:", error);
             }
         };
-        fetchMovieAndTheatreDetails();
+        if (movieId && theaterId) fetchMovieAndTheatreDetails();
     }, [movieId, theaterId]);
 
     // --- SEAT SELECTION LOGIC (Unchanged) ---
@@ -107,41 +111,110 @@ const SeatSelection = () => {
         }
     };
 
-    // --- TOTAL CALCULATION (Unchanged) ---
-    const totalAmount = selectedSeats.reduce((sum, seatId) => {
+    // --- TOTAL CALCULATION (Modified for update mode) ---
+    const newSeatPrice = selectedSeats.reduce((sum, seatId) => {
         const rowLabel = seatId.match(/[A-Z]+/)[0];
         const row = seatRows?.find((r) => r.label === rowLabel);
         return sum + (row ? row.price : 0);
     }, 0);
 
-    // This is the new, integrated payment and booking handler.
+    const UPDATE_FEE = 20; // As defined in the backend
+    const fareDifference = isUpdateMode ? (newSeatPrice + UPDATE_FEE - originalFare) : 0;
+    const amountToPay = isUpdateMode ? Math.max(0, fareDifference) : newSeatPrice;
+
+    // --- UNIVERSAL HANDLER ---
+    const handleProceed = () => {
+        if (isUpdateMode) {
+            handleTicketUpdate();
+        } else {
+            handleProceedToPayment();
+        }
+    };
+
+    // --- TICKET UPDATE LOGIC ---
+    const handleTicketUpdate = async () => {
+        if (selectedSeats.length !== 1) {
+            setStatusMessage("Please select exactly one new seat to update.");
+            return;
+        }
+        setIsProcessing(true);
+        setStatusMessage("Processing ticket update...");
+
+        const ticketUpdateDto = {
+            originalTicketId,
+            newShowId: showId,
+            newSeatNo: selectedSeats[0],
+            userId,
+        };
+
+        const finalUpdateStep = async () => {
+            try {
+                setStatusMessage("Finalizing update...");
+                await axios.put(`${import.meta.env.VITE_BACKEND_API}/ticket/update`, ticketUpdateDto, {
+                    headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+                });
+                setStatusMessage("Ticket Updated Successfully! Redirecting...");
+                setTimeout(() => navigate('/profile'), 3000);
+            } catch (updateError) {
+                console.error("Failed to update ticket:", updateError);
+                setStatusMessage(updateError.response?.data?.message || "Failed to update ticket.");
+                setIsProcessing(false);
+            }
+        };
+
+        if (amountToPay > 0) {
+            // Initiate payment for the difference
+            // This logic is similar to the original payment flow
+            try {
+                const orderResponse = await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/create-order`, { amount: amountToPay }, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
+                const orderData = orderResponse.data;
+                const options = {
+                    key: 'rzp_test_4DotYCe9Ux9uOT', // Your Razorpay Key
+                    amount: orderData.amount,
+                    currency: "INR",
+                    name: "BookMyShow Clone - Ticket Update",
+                    description: `Update fee and fare difference`,
+                    order_id: orderData.id,
+                    handler: async function (response) {
+                        // On successful payment, finalize the update
+                        await finalUpdateStep();
+                    },
+                    prefill: { name: "Test User", email: "test.user@example.com" },
+                };
+                const paymentObject = new window.Razorpay(options);
+                paymentObject.open();
+                setIsProcessing(false);
+            } catch (orderError) {
+                console.error("Failed to create payment order for update:", orderError);
+                setStatusMessage("Could not initiate payment for the update.");
+                setIsProcessing(false);
+            }
+        } else {
+            // No price difference, update directly
+            await finalUpdateStep();
+        }
+    };
+
+    // --- ORIGINAL PAYMENT LOGIC (Unchanged) ---
     const handleProceedToPayment = async () => {
         if (selectedSeats.length !== count) {
             setStatusMessage(`Please select exactly ${count} seats.`);
             return;
         }
-        setIsProcessingPayment(true);
+        setIsProcessing(true);
         setStatusMessage("Creating your order...");
 
-        // Construct the DTO your backend needs for the /ticket/book endpoint
         const ticketEntryDto = {
             showId: showId,
             userId: userId,
-            requestSeats: selectedSeats, // Make sure your backend DTO expects 'seatNos'
+            requestSeats: selectedSeats,
         };
 
         try {
-            // Step 1: Create Razorpay Order from your backend
-            const orderResponse = await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/create-order`,
-                { amount: totalAmount },
-                { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } }
-            );
-
+            const orderResponse = await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/create-order`, { amount: amountToPay }, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
             const orderData = orderResponse.data;
-
-            // Step 2: Configure and open Razorpay Checkout
             const options = {
-                key: 'rzp_test_4DotYCe9Ux9uOT', // **IMPORTANT**: Replace with your Razorpay Key ID
+                key: 'rzp_test_4DotYCe9Ux9uOT',
                 amount: orderData.amount,
                 currency: "INR",
                 name: "BookMyShow Clone",
@@ -155,34 +228,20 @@ const SeatSelection = () => {
                         razorpay_signature: response.razorpay_signature,
                         ticketEntryDto: ticketEntryDto,
                     };
-
                     try {
-                        const verificationResponse = await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/verify-payment`,
-                            verificationPayload,
-                            { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } }
-                        );
+                        await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/verify-payment`, verificationPayload, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
                         setStatusMessage("Booking Confirmed! Redirecting...");
-                        setTimeout(() => {
-                            navigate(`/profile`); // Navigate to a profile or ticket history page
-                        }, 3000);
+                        setTimeout(() => navigate(`/profile`), 3000);
                     } catch (verificationError) {
                         console.error("Payment verification failed:", verificationError);
                         setStatusMessage("Payment verification failed. Please contact support.");
-                    }
-                    finally {
-                        setIsProcessingPayment(false);
-                        setStatusMessage("");
+                    } finally {
+                        setIsProcessing(false);
                     }
                 },
-                prefill: {
-                    name: "Test User",
-                    email: "test.user@example.com",
-                },
-                theme: {
-                    color: "#F94263",
-                },
+                prefill: { name: "Test User", email: "test.user@example.com" },
+                theme: { color: "#F94263" },
             };
-
             const paymentObject = new window.Razorpay(options);
             paymentObject.open();
             paymentObject.on('payment.failed', function (response) {
@@ -192,10 +251,8 @@ const SeatSelection = () => {
         } catch (error) {
             console.error("Order creation failed:", error);
             setStatusMessage("Could not initiate payment. Please try again.");
-        } finally {
-            setIsProcessingPayment(false);
-            setStatusMessage("");
         }
+        setIsProcessing(false);
     };
 
     // --- RENDER LOGIC ---
@@ -207,13 +264,7 @@ const SeatSelection = () => {
         );
     }
 
-    // Function to determine if a seat is a bestseller (deterministic: first 2 seats in rows A, B, C)
-    const isBestsellerSeat = (rowLabel, seatNumber) => {
-        if (["A", "B", "C"].includes(rowLabel) && seatNumber <= 2) {
-            return true;
-        }
-        return false;
-    };
+    const isBestsellerSeat = (rowLabel, seatNumber) => ["A", "B", "C"].includes(rowLabel) && seatNumber <= 2;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-pink-200 via-blue-100 to-purple-200 flex flex-col font-sans">
@@ -226,12 +277,12 @@ const SeatSelection = () => {
                             <p className="text-gray-600 text-base font-medium mt-1">{theatre} • {time}</p>
                         </div>
                         <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-8 py-4 rounded-2xl font-bold shadow-lg text-lg">
-                            {selectedSeats.length} / {count} Tickets
+                            {isUpdateMode ? "Select 1 New Seat" : `${selectedSeats.length} / ${count} Tickets`}
                         </div>
                     </div>
 
                     <div className="overflow-x-auto pb-6">
-                        {seatRows.map((row) => (
+                        {seatRows && seatRows.map((row) => (
                             <div key={row.label} className="flex items-center mb-6">
                                 <span className="w-12 font-black text-xl text-gray-700 drop-shadow-sm flex-shrink-0">{row.label}</span>
                                 <div className="flex flex-wrap gap-3 ml-4 flex-1 justify-center">
@@ -248,13 +299,7 @@ const SeatSelection = () => {
                                         else seatClasses += " bg-gray-100 hover:bg-pink-200 border-gray-300 hover:border-pink-400";
 
                                         return (
-                                            <button
-                                                key={seatId}
-                                                disabled={isSold}
-                                                onClick={() => handleSelectSeat(row.label, i + 1)}
-                                                className={seatClasses}
-                                                style={{ position: "relative" }}
-                                            >
+                                            <button key={seatId} disabled={isSold} onClick={() => handleSelectSeat(row.label, i + 1)} className={seatClasses}>
                                                 {i + 1}
                                                 {isBestseller && !isSold && (
                                                     <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-yellow-400 rounded-full border-2 border-yellow-600 shadow"></span>
@@ -278,49 +323,43 @@ const SeatSelection = () => {
                         </div>
                     </div>
 
-                    {/* Legend */}
                     <div className="mt-10 p-6 bg-white/70 rounded-2xl text-base flex flex-wrap gap-8 justify-center shadow border border-white/30">
+                        {/* Legend items */}
                         <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-lg border-2 border-green-600"></span>
-                            <span className="font-semibold text-gray-700">Selected</span>
+                            <span className="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-lg border-2 border-green-600"></span><span className="font-semibold text-gray-700">Selected</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 bg-gray-400 rounded-lg border-2 border-gray-400"></span>
-                            <span className="font-semibold text-gray-700">Sold</span>
+                            <span className="w-6 h-6 bg-gray-400 rounded-lg border-2 border-gray-400"></span><span className="font-semibold text-gray-700">Sold</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="w-6 h-6 bg-yellow-300 rounded-lg border-2 border-yellow-500 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-yellow-900" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.122-6.545L.488 6.91l6.561-.955L10 0l2.951 5.955 6.561.955-4.756 4.635 1.122 6.545z"/></svg>
-                            </span>
-                            <span className="font-semibold text-gray-700">Bestseller</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-yellow-900" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.122-6.545L.488 6.91l6.561-.955L10 0l2.951 5.955 6.561.955-4.756 4.635 1.122 6.545z" /></svg>
+                            </span><span className="font-semibold text-gray-700">Bestseller</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 bg-gray-100 rounded-lg border-2 border-gray-300"></span>
-                            <span className="font-semibold text-gray-700">Available</span>
+                            <span className="w-6 h-6 bg-gray-100 rounded-lg border-2 border-gray-300"></span><span className="font-semibold text-gray-700">Available</span>
                         </div>
                     </div>
 
-                    {/* Status Message and Pay Button */}
                     <div className="mt-10 flex flex-col items-end gap-4">
                         {statusMessage && (
-                            <div className={`p-4 rounded-xl text-center font-semibold w-full max-w-md shadow-lg border-2 ${statusMessage.includes('Confirmed') ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}`}>
+                            <div className={`p-4 rounded-xl text-center font-semibold w-full max-w-md shadow-lg border-2 ${statusMessage.includes('Confirmed') || statusMessage.includes('Updated') ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}`}>
                                 {statusMessage}
                             </div>
                         )}
                         <button
                             className="bg-gradient-to-r from-pink-500 to-red-500 text-white px-12 py-5 rounded-2xl font-extrabold text-2xl transition-all duration-300 shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
-                            disabled={selectedSeats.length !== count || isProcessingPayment || statusMessage.includes('Confirmed')}
-                            onClick={handleProceedToPayment}
+                            disabled={selectedSeats.length !== count || isProcessing || statusMessage.includes('Confirmed') || statusMessage.includes('Updated')}
+                            onClick={handleProceed}
                         >
-                            {isProcessingPayment
-                                ? (
-                                    <div className="flex items-center justify-center gap-2">
-                                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
-                                        Processing...
-                                    </div>
-                                )
-                                : `Pay ₹${totalAmount}`
-                            }
+                            {isProcessing ? (
+                                <div className="flex items-center justify-center gap-2">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                                    Processing...
+                                </div>
+                            ) : (
+                                isUpdateMode ? `Update & Pay ₹${amountToPay}` : `Pay ₹${amountToPay}`
+                            )}
                         </button>
                     </div>
                 </div>
