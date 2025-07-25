@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import axios from "axios";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const [submit, setSubmit] = useState("Login");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const validateForm = () => {
     if (!username || !password) {
@@ -134,6 +136,15 @@ const Login = () => {
                     />
                   </div>
                 </div>
+                <div className="text-right">
+                  <button
+                    type="button"
+                    className="text-pink-600 hover:underline text-sm font-semibold"
+                    onClick={() => setShowForgotPassword(true)}
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
               </div>
               <button 
                 type="submit" 
@@ -158,6 +169,9 @@ const Login = () => {
         </div>
       </div>
       <Footer />
+      {showForgotPassword && (
+        <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} />
+      )}
     </div>
   );
 };
