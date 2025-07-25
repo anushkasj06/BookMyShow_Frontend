@@ -13,11 +13,9 @@ import { GoogleGenAI } from '@google/genai';
 const getGeminiApiKey = () => import.meta.env.VITE_GEMINI_API_KEY;
 
 // LLM call with fallback
-async function callGeminiLLM({ prompt, model = 'gemini-2.5-flash', fallbackModel = 'gemini-1.5-flash', config = {} }) {
+async function callGeminiLLM({ history, model = 'gemini-2.5-flash', fallbackModel = 'gemini-1.5-flash', config = {} }) {
   const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
-  const contents = [
-    { role: 'user', parts: [{ text: prompt }] },
-  ];
+  const contents = history;
   try {
     console.log('[LLM] Calling Gemini API with model:', model);
     console.log('[LLM] Config:', config);
@@ -404,10 +402,9 @@ const Chatbot = () => {
     if (!textToSend) return;
     setInput('');
     setIsLoading(true);
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', content: textToSend, id: uniqueId() },
-    ]);
+    const newUserMessage = { role: 'user', content: textToSend, id: uniqueId() };
+    const updatedMessages = [...messages, newUserMessage];
+    setMessages(updatedMessages);
     try {
       // 1. If in agentic flow, handle step
       if (bookingStep !== 'idle' && bookingStep !== 'completed') {
@@ -425,7 +422,7 @@ const Chatbot = () => {
         return;
       }
       // 2. Otherwise, use LLM to interpret intent and respond
-      const prompt = `You are MovieGPT, an advanced AI assistant for a movie ticket booking website. You can:
+      const systemPrompt = `You are MovieGPT, an advanced AI assistant for a movie ticket booking website. You can:
 - Answer questions about movies, theaters, and bookings.
 - Guide users through booking tickets step by step.
 - Execute commands for navigation and booking (see below).
@@ -512,9 +509,24 @@ show_id int -- Foreign Key reference to show_id in shows table
 
 Note: While fetching data from mysql, only use the above mentioned tables, if user asks for any other data, like How many users are using the website, or any user's ticket data then just respond as: "Due to Security Violations, I can't provide the requested data.".
 And also while fetching data, fetch appropriate columns only, like for e.g.: while fetching all movies from movies table: No need to fetch the image url as it is no needed while responding to user.
-User: ${textToSend}`;
-      console.log('[LLM] Sending prompt:', prompt);
-      let llmResponse = await callGeminiLLM({ prompt });
+`;
+
+      // The Gemini API expects roles to alternate: user, model, user, model, ...
+      // We'll prepend a system prompt as the first user message, and a canned model response.
+      // Then we'll add the rest of the conversation.
+      const conversationHistory = [
+        { role: 'user', parts: [{ text: systemPrompt }] },
+        { role: 'model', parts: [{ text: "Understood. I am MovieGPT. I will follow all instructions and provide responses in the requested JSON format. How can I help you?" }] },
+        // `slice(1)` to skip the initial "Hello! I am MovieGPT..." message
+        ...updatedMessages.slice(1).map(msg => ({
+          role: msg.role === 'user' ? 'user' : 'model',
+          // Strip HTML tags from content before sending to LLM
+          parts: [{ text: String(msg.content).replace(/<[^>]*>?/gm, '') }],
+        }))
+      ];
+
+      console.log('[LLM] Sending history:', conversationHistory);
+      let llmResponse = await callGeminiLLM({ history: conversationHistory });
       console.log('[LLM] Raw response:', llmResponse);
       let parsed;
       try {
