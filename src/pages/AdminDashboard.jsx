@@ -20,6 +20,8 @@ const AdminDashboard = () => {
   const [theaters, setTheaters] = useState([]);
   const [shows, setShows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mostShowsMovie, setMostShowsMovie] = useState(null);
+  const [mostShowsMovieCollection, setMostShowsMovieCollection] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -39,6 +41,28 @@ const AdminDashboard = () => {
         setMovies(moviesRes.data);
         setTheaters(theatersRes.data);
         setShows(showsRes.data);
+        // Fetch movie with most shows
+        try {
+          const mostShowsRes = await axios.get(`${import.meta.env.VITE_BACKEND_API}/shows/movieHavingMostShows`, { headers: { Authorization: `Bearer ${token}` } });
+          const movieName = mostShowsRes.data;
+          setMostShowsMovie(movieName);
+          // Find movieId by name
+          const foundMovie = moviesRes.data.find(m => m.movieName === movieName);
+          if (foundMovie) {
+            // Fetch total collection for this movie
+            try {
+              const collectionRes = await axios.get(`${import.meta.env.VITE_BACKEND_API}/shows/totalCollection/${foundMovie.id}`, { headers: { Authorization: `Bearer ${token}` } });
+              setMostShowsMovieCollection(collectionRes.data);
+            } catch (e) {
+              setMostShowsMovieCollection(null);
+            }
+          } else {
+            setMostShowsMovieCollection(null);
+          }
+        } catch (e) {
+          setMostShowsMovie(null);
+          setMostShowsMovieCollection(null);
+        }
       } catch (err) {
         // fallback: empty
       }
@@ -116,7 +140,7 @@ const AdminDashboard = () => {
                   <div className="text-xs text-green-600 font-bold">+{salesIncrease}% increase</div>
                 </div>
                 <div className="rounded-2xl bg-white/80 backdrop-blur-md shadow-2xl p-8 border-t-4 border-yellow-500 flex flex-col gap-2">
-                  <div className="text-gray-500 font-semibold">Revenue (Static)</div>
+                  <div className="text-gray-500 font-semibold">Revenue</div>
                   <div className="text-3xl font-extrabold text-yellow-600">₹{totalRevenue.toLocaleString()}</div>
                   <div className="text-xs text-green-600 font-bold">+{revenueIncrease}% increase</div>
                 </div>
@@ -154,12 +178,21 @@ const AdminDashboard = () => {
               {/* Static Graph and Summary */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
                 <div className="rounded-2xl bg-white/90 backdrop-blur-md shadow-2xl p-8 border-l-4 border-purple-500 flex flex-col items-center">
-                  <div className="text-lg font-bold text-gray-700 mb-4">Reports (Static)</div>
+                  <div className="text-lg font-bold text-gray-700 mb-4">Reports</div>
                   {/* Static SVG Line Chart */}
                   <svg viewBox="0 0 300 100" className="w-full h-32">
                     <polyline fill="none" stroke="#6366f1" strokeWidth="3" points="0,80 40,60 80,65 120,20 160,40 200,10 240,30 280,20" />
                     <polyline fill="none" stroke="#22c55e" strokeWidth="3" points="0,90 40,80 80,70 120,60 160,50 200,40 240,30 280,20" />
                     <polyline fill="none" stroke="#f43f5e" strokeWidth="3" points="0,95 40,90 80,85 120,80 160,75 200,70 240,65 280,60" />
+                  </svg>
+                  {/* Additional SVG Bar Chart */}
+                  <svg viewBox="0 0 300 100" className="w-full h-32 mt-4">
+                    <rect x="10" y="60" width="30" height="30" fill="#fbbf24" />
+                    <rect x="50" y="40" width="30" height="50" fill="#f472b6" />
+                    <rect x="90" y="20" width="30" height="70" fill="#60a5fa" />
+                    <rect x="130" y="50" width="30" height="40" fill="#34d399" />
+                    <rect x="170" y="30" width="30" height="60" fill="#a78bfa" />
+                    <rect x="210" y="70" width="30" height="20" fill="#f87171" />
                   </svg>
                   <div className="flex gap-4 mt-4 text-xs">
                     <span className="flex items-center gap-1"><span className="w-3 h-3 bg-indigo-500 rounded-full inline-block"></span> Sales</span>
@@ -173,6 +206,11 @@ const AdminDashboard = () => {
                     <div className="flex items-center justify-between w-full text-gray-700 font-semibold"><span>Total Sales</span><span>{totalSales}</span></div>
                     <div className="flex items-center justify-between w-full text-gray-700 font-semibold"><span>Total Customers</span><span>{totalCustomers}</span></div>
                     <div className="flex items-center justify-between w-full text-gray-700 font-semibold"><span>Total Revenue</span><span>₹{totalRevenue.toLocaleString()}</span></div>
+                    {/* Dynamic: Movie with most shows */}
+                    <div className="flex items-center justify-between w-full text-gray-700 font-semibold">
+                      <span>Movie with Most Shows</span>
+                      <span>{mostShowsMovie ? mostShowsMovie : "-"}</span>
+                    </div>
                   </div>
                 </div>
               </div>
