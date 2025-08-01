@@ -140,7 +140,7 @@ const AdminDashboard = () => {
                   <div className="text-xs text-green-600 font-bold">+{salesIncrease}% increase</div>
                 </div>
                 <div className="rounded-2xl bg-white/80 backdrop-blur-md shadow-2xl p-8 border-t-4 border-yellow-500 flex flex-col gap-2">
-                  <div className="text-gray-500 font-semibold">Revenue</div>
+                  <div className="text-gray-500 font-semibold">Revenue (Static)</div>
                   <div className="text-3xl font-extrabold text-yellow-600">₹{totalRevenue.toLocaleString()}</div>
                   <div className="text-xs text-green-600 font-bold">+{revenueIncrease}% increase</div>
                 </div>

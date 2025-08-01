@@ -68,16 +68,43 @@ const ReviewSection = ({ movieId, currentUser }) => {
                 {currentUser && (
                     <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-pink-200 mb-8">
                         <h4 className="text-xl font-bold mb-4">Add Your Review</h4>
-                        <div className="flex items-center mb-4">
-                            <span className="mr-2">Rating:</span>
-                            <input
-                                type="number"
-                                min="1"
-                                max="10"
-                                value={newReview.rating}
-                                onChange={(e) => setNewReview({ ...newReview, rating: e.target.value })}
-                                className="border rounded px-2 py-1 w-20"
-                            />
+                        <div className="mb-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="font-medium text-gray-700">Your Rating (out of 10):</span>
+                                <span className="text-lg font-bold text-pink-600">{newReview.rating || "0"}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                {[...Array(10)].map((_, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => setNewReview({ ...newReview, rating: i + 1 })}
+                                        onMouseEnter={(e) => {
+                                            const stars = e.target.parentElement.children;
+                                            for (let j = 0; j <= i; j++) {
+                                                stars[j].classList.add('text-yellow-400');
+                                                stars[j].classList.remove('text-gray-300');
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            const stars = e.target.parentElement.children;
+                                            for (let j = 0; j < 10; j++) {
+                                                if (j < newReview.rating) {
+                                                    stars[j].classList.add('text-yellow-400');
+                                                    stars[j].classList.remove('text-gray-300');
+                                                } else {
+                                                    stars[j].classList.remove('text-yellow-400');
+                                                    stars[j].classList.add('text-gray-300');
+                                                }
+                                            }
+                                        }}
+                                        className={`text-2xl cursor-pointer transition-colors duration-200 ${
+                                            i < newReview.rating ? 'text-yellow-400' : 'text-gray-300'
+                                        }`}
+                                    >
+                                        ★
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <textarea
                             placeholder="Write your comment..."
@@ -100,16 +127,43 @@ const ReviewSection = ({ movieId, currentUser }) => {
                         <div key={review.id} className="bg-white rounded-2xl p-8 shadow-xl border-2 border-pink-200">
                             {editingReview && editingReview.id === review.id ? (
                                 <div>
-                                    <div className="flex items-center mb-4">
-                                        <span className="mr-2">Rating:</span>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="10"
-                                            value={editingReview.rating}
-                                            onChange={(e) => setEditingReview({ ...editingReview, rating: e.target.value })}
-                                            className="border rounded px-2 py-1 w-20"
-                                        />
+                                    <div className="mb-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="font-medium text-gray-700">Your Rating (out of 10):</span>
+                                            <span className="text-lg font-bold text-pink-600">{editingReview.rating || "0"}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            {[...Array(10)].map((_, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setEditingReview({ ...editingReview, rating: i + 1 })}
+                                                    onMouseEnter={(e) => {
+                                                        const stars = e.target.parentElement.children;
+                                                        for (let j = 0; j <= i; j++) {
+                                                            stars[j].classList.add('text-yellow-400');
+                                                            stars[j].classList.remove('text-gray-300');
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        const stars = e.target.parentElement.children;
+                                                        for (let j = 0; j < 10; j++) {
+                                                            if (j < editingReview.rating) {
+                                                                stars[j].classList.add('text-yellow-400');
+                                                                stars[j].classList.remove('text-gray-300');
+                                                            } else {
+                                                                stars[j].classList.remove('text-yellow-400');
+                                                                stars[j].classList.add('text-gray-300');
+                                                            }
+                                                        }
+                                                    }}
+                                                    className={`text-2xl cursor-pointer transition-colors duration-200 ${
+                                                        i < editingReview.rating ? 'text-yellow-400' : 'text-gray-300'
+                                                    }`}
+                                                >
+                                                    ★
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                     <textarea
                                         value={editingReview.comment}

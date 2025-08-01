@@ -16,38 +16,41 @@ const SeatSelection = () => {
     const { id: movieId } = useParams();
 
     // --- MODE DETERMINATION (BOOKING VS. UPDATING) ---
-    // Check if we are in "update mode" by looking at the navigation state
     const isUpdateMode = state?.isUpdateMode || false;
     const originalTicketId = state?.originalTicketId || null;
     const originalFare = state?.originalFare || 0;
 
     // --- STATE MANAGEMENT ---
-    // Get booking details from URL query (for booking mode) or location state (for update mode)
     const count = isUpdateMode ? 1 : parseInt(query.get("count"));
     const theaterId = isUpdateMode ? state.theaterId : parseInt(query.get("theatre"));
     const showId = isUpdateMode ? state.newShowId : parseInt(query.get("showId"));
     const time = isUpdateMode ? state.time : query.get("time");
 
+    const [allShowSeats, setAllShowSeats] = useState([]);
     const [selectedSeats, setSelectedSeats] = useState([]);
     const [userId, setUserId] = useState(null);
     const [movie, setMovie] = useState("");
     const [theatre, setTheatre] = useState("");
     const [seatRows, setSeatRows] = useState(null);
     const [soldSeats, setSoldSeats] = useState([]);
+    const [lockedSeats, setLockedSeats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [statusMessage, setStatusMessage] = useState("");
 
-    // --- DATA FETCHING (Unchanged) ---
+    // --- Data Fetching Hooks ---
     useEffect(() => {
         const fetchSeatData = async () => {
             setLoading(true);
             try {
-                const [theaterSeatsResponse, seatsPriceResponse, bookedSeatsResponse] = await Promise.all([
+                const [theaterSeatsResponse, seatsPriceResponse, bookedSeatsResponse, allSeatsResponse] = await Promise.all([
                     axios.get(`${import.meta.env.VITE_BACKEND_API}/theater-seats/theater/${theaterId}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } }),
                     axios.get(`${import.meta.env.VITE_BACKEND_API}/shows/seat/prices/${showId}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } }),
-                    axios.get(`${import.meta.env.VITE_BACKEND_API}/seats/show/${showId}/booked`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } })
+                    axios.get(`${import.meta.env.VITE_BACKEND_API}/seats/show/${showId}/booked`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } }),
+                    axios.get(`${import.meta.env.VITE_BACKEND_API}/seats/show/${showId}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } })
                 ]);
+                
+                setAllShowSeats(allSeatsResponse.data);
 
                 const theaterSeats = theaterSeatsResponse.data;
                 const prices = seatsPriceResponse.data;
@@ -80,6 +83,7 @@ const SeatSelection = () => {
                 setUserId(response.data.id);
             } catch (error) {
                 console.error("Error fetching user ID:", error);
+                setStatusMessage("Could not authenticate user.");
             }
         };
         fetchUserDetails();
@@ -101,34 +105,95 @@ const SeatSelection = () => {
         if (movieId && theaterId) fetchMovieAndTheatreDetails();
     }, [movieId, theaterId]);
 
-    // --- SEAT SELECTION LOGIC (Unchanged) ---
-    const handleSelectSeat = (row, num) => {
-        const seatId = row + num;
-        if (selectedSeats.includes(seatId)) {
-            setSelectedSeats(selectedSeats.filter((s) => s !== seatId));
-        } else if (selectedSeats.length < count) {
-            setSelectedSeats([...selectedSeats, seatId]);
+    // --- SEAT SELECTION LOGIC ---
+    const handleSelectSeat = async (row, num) => {
+        const seatNo = row + num;
+        const token = localStorage.getItem("token");
+        if (!token || !userId) {
+            setStatusMessage("Please log in to select seats.");
+            return;
+        }
+
+        const seatObject = allShowSeats.find(seat => seat.seatNo === seatNo);
+        if (!seatObject) {
+            console.error(`Seat data for ${seatNo} not found.`);
+            setStatusMessage("An error occurred. Please refresh the page.");
+            return;
+        }
+
+        // Deselecting a seat
+        if (selectedSeats.includes(seatNo)) {
+            try {
+                setIsProcessing(true);
+                setStatusMessage(`Unlocking seat ${seatNo}...`);
+                await axios.post(
+                    `${import.meta.env.VITE_BACKEND_API}/seats/unlockSeat`,
+                    { seatId: seatObject.id, userId },
+                    { headers: { "Authorization": `Bearer ${token}` } }
+                );
+                setSelectedSeats(selectedSeats.filter((s) => s !== seatNo));
+                setLockedSeats(lockedSeats.filter((s) => s !== seatNo));
+                setIsProcessing(false);
+                setStatusMessage("");
+            } catch (error) {
+                console.error(`Error unlocking seat ${seatNo}:`, error);
+                setStatusMessage(error.response?.data?.message || `Failed to unlock seat ${seatNo}.`);
+                setIsProcessing(false);
+            }
+        }
+        // Selecting a seat
+        else if (selectedSeats.length < count) {
+            try {
+                setIsProcessing(true);
+                setStatusMessage(`Locking seat ${seatNo}...`);
+                await axios.post(
+                    `${import.meta.env.VITE_BACKEND_API}/seats/lockSeat`,
+                    { seatId: seatObject.id, userId },
+                    { headers: { "Authorization": `Bearer ${token}` } }
+                );
+                setSelectedSeats([...selectedSeats, seatNo]);
+                setLockedSeats([...lockedSeats, seatNo]);
+                setIsProcessing(false);
+                setStatusMessage("");
+            } catch (error) {
+                console.error(`Error locking seat ${seatNo}:`, error);
+                setStatusMessage(error.response?.data?.message || `Failed to lock seat ${seatNo}. It may already be taken.`);
+                setIsProcessing(false);
+            }
+        } else {
+            setStatusMessage(`You can only select ${count} seat(s).`);
         }
     };
 
-    // --- TOTAL CALCULATION (Modified for update mode) ---
+    // --- TOTAL CALCULATION ---
     const newSeatPrice = selectedSeats.reduce((sum, seatId) => {
         const rowLabel = seatId.match(/[A-Z]+/)[0];
         const row = seatRows?.find((r) => r.label === rowLabel);
         return sum + (row ? row.price : 0);
     }, 0);
 
-    const UPDATE_FEE = 20; // As defined in the backend
+    const UPDATE_FEE = 20;
     const fareDifference = isUpdateMode ? (newSeatPrice + UPDATE_FEE - originalFare) : 0;
     const amountToPay = isUpdateMode ? Math.max(0, fareDifference) : newSeatPrice;
 
-    // --- UNIVERSAL HANDLER ---
-    const handleProceed = () => {
-        if (isUpdateMode) {
-            handleTicketUpdate();
-        } else {
-            handleProceedToPayment();
-        }
+    const handleUnlockSeats = async (seatsToUnlock) => {
+        const token = localStorage.getItem("token");
+        if (!token || !userId || seatsToUnlock.length === 0) return;
+
+        const seatObjectsToUnlock = seatsToUnlock.map(seatNo => allShowSeats.find(s => s.seatNo === seatNo)).filter(Boolean);
+
+        const unlockPromises = seatObjectsToUnlock.map(seat =>
+            axios.post(
+                `${import.meta.env.VITE_BACKEND_API}/seats/unlockSeat`,
+                { seatId: seat.id, userId },
+                { headers: { "Authorization": `Bearer ${token}` } }
+            ).catch(e => {
+                console.error(`Failed to unlock seat ${seat.seatNo}:`, e);
+            })
+        );
+        await Promise.allSettled(unlockPromises);
+        setLockedSeats([]);
+        setSelectedSeats([]);
     };
 
     // --- TICKET UPDATE LOGIC ---
@@ -154,29 +219,28 @@ const SeatSelection = () => {
                     headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
                 });
                 setStatusMessage("Ticket Updated Successfully! Redirecting...");
+                await handleUnlockSeats(lockedSeats);
                 setTimeout(() => navigate('/profile'), 3000);
             } catch (updateError) {
                 console.error("Failed to update ticket:", updateError);
                 setStatusMessage(updateError.response?.data?.message || "Failed to update ticket.");
+            } finally {
                 setIsProcessing(false);
             }
         };
 
         if (amountToPay > 0) {
-            // Initiate payment for the difference
-            // This logic is similar to the original payment flow
             try {
                 const orderResponse = await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/create-order`, { amount: amountToPay }, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
                 const orderData = orderResponse.data;
                 const options = {
-                    key: 'rzp_test_4DotYCe9Ux9uOT', // Your Razorpay Key
+                    key: 'rzp_test_4DotYCe9Ux9uOT',
                     amount: orderData.amount,
                     currency: "INR",
                     name: "BookMyShow Clone - Ticket Update",
                     description: `Update fee and fare difference`,
                     order_id: orderData.id,
                     handler: async function (response) {
-                        // On successful payment, finalize the update
                         await finalUpdateStep();
                     },
                     prefill: { name: "Test User", email: "test.user@example.com" },
@@ -190,12 +254,11 @@ const SeatSelection = () => {
                 setIsProcessing(false);
             }
         } else {
-            // No price difference, update directly
             await finalUpdateStep();
         }
     };
 
-    // --- ORIGINAL PAYMENT LOGIC (Unchanged) ---
+    // --- ORIGINAL PAYMENT LOGIC ---
     const handleProceedToPayment = async () => {
         if (selectedSeats.length !== count) {
             setStatusMessage(`Please select exactly ${count} seats.`);
@@ -231,10 +294,12 @@ const SeatSelection = () => {
                     try {
                         await axios.post(`${import.meta.env.VITE_BACKEND_API}/api/payment/verify-payment`, verificationPayload, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
                         setStatusMessage("Booking Confirmed! Redirecting...");
+                        await handleUnlockSeats(lockedSeats);
                         setTimeout(() => navigate(`/profile`), 3000);
                     } catch (verificationError) {
                         console.error("Payment verification failed:", verificationError);
                         setStatusMessage("Payment verification failed. Please contact support.");
+                        await handleUnlockSeats(lockedSeats);
                     } finally {
                         setIsProcessing(false);
                     }
@@ -244,17 +309,28 @@ const SeatSelection = () => {
             };
             const paymentObject = new window.Razorpay(options);
             paymentObject.open();
-            paymentObject.on('payment.failed', function (response) {
+            paymentObject.on('payment.failed', async function (response) {
                 console.error("Razorpay payment failed:", response.error);
                 setStatusMessage(`Payment Failed: ${response.error.description}`);
+                setIsProcessing(false);
+                await handleUnlockSeats(lockedSeats);
             });
         } catch (error) {
             console.error("Order creation failed:", error);
             setStatusMessage("Could not initiate payment. Please try again.");
+            setIsProcessing(false);
         }
-        setIsProcessing(false);
     };
 
+    // --- UNIVERSAL HANDLER ---
+    const handleProceed = () => {
+        if (isUpdateMode) {
+            handleTicketUpdate();
+        } else {
+            handleProceedToPayment();
+        }
+    };
+    
     // --- RENDER LOGIC ---
     if (loading) {
         return (
@@ -287,21 +363,36 @@ const SeatSelection = () => {
                                 <span className="w-12 font-black text-xl text-gray-700 drop-shadow-sm flex-shrink-0">{row.label}</span>
                                 <div className="flex flex-wrap gap-3 ml-4 flex-1 justify-center">
                                     {Array.from({ length: row.count }, (_, i) => {
-                                        const seatId = row.label + (i + 1);
-                                        const isSold = soldSeats.includes(seatId);
-                                        const isSelected = selectedSeats.includes(seatId);
+                                        const seatNo = row.label + (i + 1);
+                                        
+                                        // CHANGE: Define seat status based on the full data from allShowSeats
+                                        const seatObject = allShowSeats.find(s => s.seatNo === seatNo);
+                                        const isSold = seatObject ? !seatObject.isAvailable : soldSeats.includes(seatNo);
+                                        const isLockedByOther = seatObject ? (seatObject.lockedByUserId && seatObject.lockedByUserId !== userId) : false;
+                                        
+                                        const isSelected = selectedSeats.includes(seatNo);
                                         const isBestseller = isBestsellerSeat(row.label, i + 1);
 
                                         let seatClasses = "w-10 h-10 border-2 rounded-lg flex items-center justify-center text-base font-bold transition-all duration-200 shadow-md relative";
-                                        if (isSold) seatClasses += " bg-gray-400 text-gray-700 cursor-not-allowed border-gray-400";
-                                        else if (isSelected) seatClasses += " bg-gradient-to-br from-green-400 to-green-600 text-white scale-110 border-green-600 z-10";
-                                        else if (isBestseller) seatClasses += " bg-yellow-300 text-yellow-900 border-yellow-500 hover:bg-yellow-400 animate-pulse";
-                                        else seatClasses += " bg-gray-100 hover:bg-pink-200 border-gray-300 hover:border-pink-400";
+                                        
+                                        // CHANGE: Update the styling logic to make seats locked by others appear grey
+                                        if (isSold || isLockedByOther) {
+                                            seatClasses += " bg-gray-400 text-gray-700 cursor-not-allowed border-gray-400";
+                                        } else if (isSelected) {
+                                            seatClasses += " bg-gradient-to-br from-green-400 to-green-600 text-white scale-110 border-green-600 z-10";
+                                        } else if (isBestseller) {
+                                            seatClasses += " bg-yellow-300 text-yellow-900 border-yellow-500 hover:bg-yellow-400 animate-pulse";
+                                        } else {
+                                            seatClasses += " bg-gray-100 hover:bg-pink-200 border-gray-300 hover:border-pink-400";
+                                        }
+                                        
+                                        // CHANGE: Disable the button if it's sold OR locked by another user
+                                        const isDisabled = isSold || isLockedByOther || isProcessing;
 
                                         return (
-                                            <button key={seatId} disabled={isSold} onClick={() => handleSelectSeat(row.label, i + 1)} className={seatClasses}>
+                                            <button key={seatNo} disabled={isDisabled} onClick={() => handleSelectSeat(row.label, i + 1)} className={seatClasses}>
                                                 {i + 1}
-                                                {isBestseller && !isSold && (
+                                                {isBestseller && !isSold && !isLockedByOther &&(
                                                     <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-yellow-400 rounded-full border-2 border-yellow-600 shadow"></span>
                                                 )}
                                             </button>
@@ -324,12 +415,11 @@ const SeatSelection = () => {
                     </div>
 
                     <div className="mt-10 p-6 bg-white/70 rounded-2xl text-base flex flex-wrap gap-8 justify-center shadow border border-white/30">
-                        {/* Legend items */}
                         <div className="flex items-center gap-2">
                             <span className="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-lg border-2 border-green-600"></span><span className="font-semibold text-gray-700">Selected</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 bg-gray-400 rounded-lg border-2 border-gray-400"></span><span className="font-semibold text-gray-700">Sold</span>
+                            <span className="w-6 h-6 bg-gray-400 rounded-lg border-2 border-gray-400"></span><span className="font-semibold text-gray-700">Sold / Locked</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="w-6 h-6 bg-yellow-300 rounded-lg border-2 border-yellow-500 flex items-center justify-center">

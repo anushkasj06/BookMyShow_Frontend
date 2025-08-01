@@ -234,7 +234,7 @@ export default function Profile() {
                     </h3>
                     <ul className="text-xs md:text-sm text-gray-700 list-disc pl-6 text-left w-full max-w-2xl space-y-2">
                         <li><span className="font-bold text-pink-700">Time Limit:</span> Tickets can be updated only up to <span className="font-bold">3 hours before showtime</span>. No changes are allowed after that.</li>
-                        <li><span className="font-bold text-pink-700">Charges:</span> A <span className="font-bold">₹25 update fee</span> applies. If the new ticket is costlier, you must pay the fare difference. No refund is given if it’s cheaper.</li>
+                        <li><span className="font-bold text-pink-700">Charges:</span> A <span className="font-bold">₹20 update fee</span> applies. If the new ticket is costlier, you must pay the fare difference. No refund is given if it’s cheaper.</li>
                         <li><span className="font-bold text-pink-700">Allowed Changes:</span> You can update the show timing, seat, or seat type (e.g., Regular to Premium) for the <span className="font-bold">same movie and theatre only</span>.</li>
                         <li><span className="font-bold text-pink-700">Seat & Limitations:</span> Updates are subject to seat availability and allowed only <span className="font-bold">once per ticket</span>. Promo/corporate/free tickets cannot be updated.</li>
                     </ul>
