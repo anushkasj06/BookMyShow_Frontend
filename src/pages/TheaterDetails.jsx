@@ -75,15 +75,17 @@ const TheaterDetails = () => {
         }
       );
       
-      // Filter shows for selected date
       const filteredShows = response.data.filter(show => 
-        show.date === selectedDate
+        new Date(show.date).toISOString().split('T')[0] === selectedDate
       );
       
       setShows(filteredShows);
       
-      // Get unique movies from shows
-      const movieIds = [...new Set(filteredShows.map(show => show.movieId))];
+      // --- START OF FIX ---
+      // The show object contains a 'movie' object. We need to access movie.id.
+      const movieIds = [...new Set(filteredShows.map(show => show.movie.id))];
+      // --- END OF FIX ---
+
       const moviesData = [];
       
       for (const movieId of movieIds) {
@@ -108,18 +110,21 @@ const TheaterDetails = () => {
     }
   };
 
-  const handleMovieClick = (movieId) => {
-    navigate(`/movie/${movieId}`);
-  };
-
-  const handleBookMovie = (movieId) => {
-    navigate(`/movie/${movieId}/book`);
+  const handleShowTimeClick = (show, movie) => {
+    const time = show.time.slice(0, 5);
+    const queryParams = new URLSearchParams({
+        count: 1,
+        theatre: theaterData.id,
+        showId: show.showId,
+        time: time
+    }).toString();
+    
+    navigate(`/movie/${movie.id}/book/seats?${queryParams}`);
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-100 via-blue-50 to-purple-100 flex flex-col relative overflow-hidden">
-        {/* Animated background elements */}
         <div className="absolute inset-0 -z-10 pointer-events-none">
           <div className="absolute -top-32 -left-32 w-96 h-96 bg-pink-200 opacity-30 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute top-1/2 right-0 w-80 h-80 bg-blue-200 opacity-20 rounded-full blur-2xl animate-bounce"></div>
@@ -144,7 +149,6 @@ const TheaterDetails = () => {
   if (!theaterData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-100 via-blue-50 to-purple-100 flex flex-col relative overflow-hidden">
-        {/* Animated background elements */}
         <div className="absolute inset-0 -z-10 pointer-events-none">
           <div className="absolute -top-32 -left-32 w-96 h-96 bg-pink-200 opacity-30 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute top-1/2 right-0 w-80 h-80 bg-blue-200 opacity-20 rounded-full blur-2xl animate-bounce"></div>
@@ -170,7 +174,6 @@ const TheaterDetails = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-blue-50 to-purple-100 flex flex-col relative overflow-hidden">
-      {/* Animated background elements */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute -top-32 -left-32 w-96 h-96 bg-pink-200 opacity-30 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute top-1/2 right-0 w-80 h-80 bg-blue-200 opacity-20 rounded-full blur-2xl animate-bounce"></div>
@@ -180,9 +183,7 @@ const TheaterDetails = () => {
       
       <Navbar />
       <main className="flex-1 max-w-7xl mx-auto w-full py-10 px-4 relative z-10">
-        {/* Theater Header with Glassmorphism */}
         <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-8 mb-8 border border-white/30 relative overflow-hidden">
-          {/* Decorative elements */}
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-pink-400 to-red-400 rounded-full opacity-20 blur-2xl"></div>
           <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full opacity-15 blur-xl"></div>
           
@@ -249,9 +250,7 @@ const TheaterDetails = () => {
           </div>
         </div>
 
-        {/* Date Selection with Enhanced Styling */}
         <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-8 mb-8 border border-white/30 relative overflow-hidden">
-          {/* Decorative elements */}
           <div className="absolute -top-6 -left-6 w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full opacity-20 blur-xl"></div>
           
           <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
@@ -280,9 +279,7 @@ const TheaterDetails = () => {
           </div>
         </div>
 
-        {/* Movies Section with Enhanced Cards */}
         <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl p-8 border border-white/30 relative overflow-hidden">
-          {/* Decorative elements */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full opacity-15 blur-2xl"></div>
           
           <h2 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3">
@@ -300,7 +297,7 @@ const TheaterDetails = () => {
           {theaterMovies.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {theaterMovies.map((movie) => {
-                const movieShows = shows.filter(show => show.movieId === movie.id);
+                const movieShows = shows.filter(show => show.movie.id === movie.id);
                 return (
                   <div key={movie.id} className="group relative">
                     <div className="bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-md rounded-3xl p-6 shadow-xl border border-white/30 transition-all duration-300 hover:shadow-2xl hover:scale-105">
@@ -325,7 +322,7 @@ const TheaterDetails = () => {
                             {movieShows.slice(0, 4).map((show) => (
                               <button
                                 key={show.showId}
-                                onClick={() => navigate(`/movie/${movie.id}/book`)}
+                                onClick={() => handleShowTimeClick(show, movie)}
                                 className="bg-gradient-to-r from-pink-500 to-red-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-pink-600 hover:to-red-600 transition-all duration-300 shadow-lg transform hover:scale-105"
                               >
                                 {show.time.slice(0, 5)}
@@ -373,4 +370,4 @@ const TheaterDetails = () => {
   );
 };
 
-export default TheaterDetails; 
+export default TheaterDetails;

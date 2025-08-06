@@ -60,13 +60,35 @@ const AdminAddShow = () => {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    // Clear messages when user starts typing again
+    setError("");
+    setMessage("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setMessage("");
     setError("");
+
+    // --- START OF FIX: Time validation logic ---
+    const now = new Date();
+    const today = now.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+
+    // Check only applies if the selected date is today
+    if (form.date === today) {
+      const selectedDateTime = new Date(`${form.date}T${form.time}:00`);
+      
+      // Calculate the minimum allowed time (current time + 3 hours)
+      const minAllowedTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+
+      if (selectedDateTime < minAllowedTime) {
+        setError("Invalid Time: For today's date, the show time must be at least 3 hours from now.");
+        return; // Stop the submission
+      }
+    }
+    // --- END OF FIX ---
+
+    setSubmitting(true);
     try {
       const token = localStorage.getItem("token");
       const formattedTime = form.time ? `${form.time}:00` : "";
@@ -100,7 +122,6 @@ const AdminAddShow = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-blue-50 to-blue-200 flex flex-col relative">
-      {/* Animated/floating background shapes */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute -top-32 -left-32 w-96 h-96 bg-pink-200 opacity-30 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute top-1/2 right-0 w-80 h-80 bg-blue-200 opacity-20 rounded-full blur-2xl animate-bounce"></div>
@@ -108,7 +129,6 @@ const AdminAddShow = () => {
       </div>
       <Navbar />
       <div className="flex flex-1 w-full max-w-12xl mx-auto">
-        {/* Sidebar */}
         <aside className="hidden md:flex flex-col w-60 min-h-full py-10 px-4 bg-white/70 backdrop-blur-md border-r border-gray-200 shadow-2xl rounded-tr-3xl rounded-br-3xl mt-8 mb-8 mr-6">
           <div className="flex flex-col items-center mb-10">
             <span className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-red-400 flex items-center justify-center text-white text-2xl font-extrabold border-2 border-pink-200 shadow-lg mb-2">
@@ -129,12 +149,10 @@ const AdminAddShow = () => {
             ))}
           </nav>
         </aside>
-        {/* Main Content */}
         <main className="flex-1 flex flex-col items-center justify-center py-12 px-2 md:px-10">
           <h2 className="text-4xl md:text-5xl font-extrabold mb-10 text-pink-600 text-center tracking-tight drop-shadow-lg">Add Show</h2>
           <div className="w-full max-w-8xl mx-auto">
             <div className="rounded-3xl bg-white/80 backdrop-blur-md shadow-2xl p-12 border-t-8 border-pink-500 relative overflow-hidden min-h-[480px] flex flex-col justify-center">
-              {/* Decorative shapes */}
               <div className="absolute -top-8 -right-8 w-32 h-32 bg-pink-200 opacity-20 rounded-full blur-2xl pointer-events-none"></div>
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-200 opacity-10 rounded-full blur-2xl pointer-events-none"></div>
               {loading ? (
@@ -142,7 +160,6 @@ const AdminAddShow = () => {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-8 w-full">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Movie Selection */}
                     <div>
                       <label className="block text-gray-700 font-bold mb-2">Select Movie</label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -163,7 +180,6 @@ const AdminAddShow = () => {
                         )}
                       </div>
                     </div>
-                    {/* Theater Selection */}
                     <div>
                       <label className="block text-gray-700 font-bold mb-2">Select Theater</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -185,7 +201,6 @@ const AdminAddShow = () => {
                       </div>
                     </div>
                   </div>
-                  {/* Date and Time Inputs */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                       <label className="block text-gray-700 font-bold mb-2">Date</label>
@@ -210,7 +225,22 @@ const AdminAddShow = () => {
                       />
                     </div>
                   </div>
-                  {/* Submit Button */}
+                  
+                  {/* --- START: Styled Message/Error Display --- */}
+                  <div className="h-10"> {/* Placeholder to prevent layout shift */}
+                    {message && 
+                      <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-r-lg text-center font-semibold" role="alert">
+                        {message}
+                      </div>
+                    }
+                    {error && 
+                      <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r-lg text-center font-semibold" role="alert">
+                        {error}
+                      </div>
+                    }
+                  </div>
+                  {/* --- END: Styled Message/Error Display --- */}
+
                   <div className="flex justify-end">
                     <button
                       type="submit"
@@ -220,9 +250,6 @@ const AdminAddShow = () => {
                       {submitting ? "Adding Show..." : "Add Show"}
                     </button>
                   </div>
-                  {/* Messages */}
-                  {message && <div className="text-center mt-4 text-lg font-semibold text-green-600">{message}</div>}
-                  {error && <div className="text-center mt-4 text-lg font-semibold text-red-600">{error}</div>}
                 </form>
               )}
             </div>

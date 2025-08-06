@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios"; // Using axios for easier requests
 
 const ADMIN_SIDEBAR_LINKS = [
   { label: "Dashboard", icon: "🏠", path: "/admin/dashboard" },
@@ -13,7 +14,30 @@ const ADMIN_SIDEBAR_LINKS = [
   { label: "Add Show", icon: "➕", path: "/admin/add-show" },
 ];
 
+// Predefined food options with emojis and suggested prices
+const FOOD_OPTIONS = [
+  { name: "Popcorn", emoji: "🍿", suggestedPrice: 120, category: "Snacks" },
+  { name: "Samosa", emoji: "🥟", suggestedPrice: 80, category: "Snacks" },
+  { name: "French Fries", emoji: "🍟", suggestedPrice: 150, category: "Snacks" },
+  { name: "Cold Drink", emoji: "🥤", suggestedPrice: 100, category: "Beverages" },
+  { name: "Coca Cola", emoji: "🥤", suggestedPrice: 120, category: "Beverages" },
+  { name: "Momos", emoji: "🥟", suggestedPrice: 180, category: "Snacks" },
+  { name: "Pizza Slice", emoji: "🍕", suggestedPrice: 200, category: "Snacks" },
+  { name: "Nachos", emoji: "🌮", suggestedPrice: 160, category: "Snacks" },
+  { name: "Hot Dog", emoji: "🌭", suggestedPrice: 140, category: "Snacks" },
+  { name: "Burger", emoji: "🍔", suggestedPrice: 180, category: "Snacks" },
+  { name: "Ice Cream", emoji: "🍦", suggestedPrice: 100, category: "Desserts" },
+  { name: "Chocolate", emoji: "🍫", suggestedPrice: 80, category: "Desserts" },
+  { name: "Coffee", emoji: "☕", suggestedPrice: 120, category: "Beverages" },
+  { name: "Tea", emoji: "🫖", suggestedPrice: 80, category: "Beverages" },
+  { name: "Water Bottle", emoji: "💧", suggestedPrice: 40, category: "Beverages" },
+  { name: "Chips", emoji: "🥔", suggestedPrice: 60, category: "Snacks" },
+  { name: "Noodles", emoji: "🍜", suggestedPrice: 160, category: "Snacks" },
+  { name: "Sandwich", emoji: "🥪", suggestedPrice: 140, category: "Snacks" },
+];
+
 const AdminShowList = () => {
+  // --- Existing State ---
   const [shows, setShows] = useState([]);
   const [movies, setMovies] = useState([]);
   const [theaters, setTheaters] = useState([]);
@@ -33,6 +57,25 @@ const AdminShowList = () => {
     priceOfPremiumSeat: "",
     priceOfClassicPlusSeat: "",
     priceOfClassicSeat: "",
+  });
+
+  // --- New State for Food Management ---
+  const [showFoodModal, setShowFoodModal] = useState(false);
+  const [currentShowForFood, setCurrentShowForFood] = useState(null);
+  const [foodItems, setFoodItems] = useState([]);
+  const [foodForm, setFoodForm] = useState({ name: "", price: "" });
+  const [editingFoodId, setEditingFoodId] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Get unique categories
+  const categories = ["All", ...new Set(FOOD_OPTIONS.map(food => food.category))];
+
+  // Filter food options based on category and search
+  const filteredFoodOptions = FOOD_OPTIONS.filter(food => {
+    const matchesCategory = selectedCategory === "All" || food.category === selectedCategory;
+    const matchesSearch = food.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
 
   useEffect(() => {
@@ -72,6 +115,7 @@ const AdminShowList = () => {
   const getMovie = (id) => movies.find(m => m.id === id) || {};
   const getTheater = (id) => theaters.find(t => t.id === id) || {};
 
+  // --- Existing Handlers (No Changes) ---
   const handleEdit = (show) => {
     setEditId(show.showId);
     setEditForm({
@@ -199,6 +243,85 @@ const AdminShowList = () => {
     }
   };
 
+  // --- Enhanced Handlers for Food Management ---
+  const handleAssociateFoodClick = async (show) => {
+    setCurrentShowForFood(show);
+    setShowFoodModal(true);
+    setEditingFoodId(null);
+    setFoodForm({ name: "", price: "" });
+    setSelectedCategory("All");
+    setSearchTerm("");
+    setMessage("");
+    setError("");
+    try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`http://localhost:8080/show-food/show/${show.showId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        setFoodItems(res.data);
+    } catch (err) {
+        setError("Failed to fetch food items for this show.");
+        setFoodItems([]);
+    }
+  };
+
+  const handleFoodFormChange = (e) => {
+      setFoodForm({ ...foodForm, [e.target.name]: e.target.value });
+  };
+
+  const handleFoodSubmit = async (e) => {
+      e.preventDefault();
+      setSubmitting(true);
+      setMessage("");
+      setError("");
+      const token = localStorage.getItem("token");
+      const url = editingFoodId 
+          ? `http://localhost:8080/show-food/update/${editingFoodId}` 
+          : `http://localhost:8080/show-food/add`;
+      const method = editingFoodId ? 'put' : 'post';
+
+      try {
+          await axios[method](url, 
+              { ...foodForm, showId: currentShowForFood.showId, price: parseInt(foodForm.price) },
+              { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }
+          );
+          setMessage(`Food item ${editingFoodId ? 'updated' : 'added'} successfully!`);
+          handleAssociateFoodClick(currentShowForFood); // Refresh food list
+      } catch (err) {
+          setError("Failed to submit food item.");
+      } finally {
+          setSubmitting(false);
+      }
+  };
+
+  const handleEditFood = (food) => {
+      setEditingFoodId(food.id);
+      setFoodForm({ name: food.name, price: food.price });
+  };
+
+  const handleDeleteFood = async (foodId) => {
+      if (!window.confirm("Are you sure? This action cannot be undone.")) return;
+      setSubmitting(true);
+      setMessage("");
+      setError("");
+      const token = localStorage.getItem("token");
+      try {
+          await axios.delete(`http://localhost:8080/show-food/delete/${foodId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          setMessage("Food item deleted successfully.");
+          handleAssociateFoodClick(currentShowForFood); // Refresh list
+      } catch (err) {
+          setError("Failed to delete food item.");
+      } finally {
+          setSubmitting(false);
+      }
+  };
+
+  const handleQuickAddFood = (foodOption) => {
+    setFoodForm({ name: foodOption.name, price: foodOption.suggestedPrice });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-100 via-blue-50 to-blue-200 flex flex-col relative">
       <Navbar />
@@ -263,12 +386,14 @@ const AdminShowList = () => {
                           <div className="text-sm text-gray-600 mb-1 text-center">{theater.name}</div>
                           <div className="flex flex-wrap gap-2 justify-center mb-2">
                             <span className="bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full text-xs font-semibold">{show.date}</span>
-                            <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs font-semibold">{show.time ? show.time.slice(0,5) : ""}</span>
+                            <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs font-semibold">{show.time ? show.time.slice(0, 5) : ""}</span>
                           </div>
-                          <div className="flex gap-3 mt-4 w-full justify-center">
-                            <button title="Edit" onClick={() => handleEdit(show)} className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1.2 rounded-xl font-bold shadow-lg border-2 border-yellow-300 hover:scale-110 hover:shadow-2xl transition-all">Edit</button>
-                            <button title="Delete" onClick={() => handleDelete(show.showId)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.2 rounded-xl font-bold shadow-lg border-2 border-red-300 hover:scale-110 hover:shadow-2xl transition-all">Delete</button>
-                            <button title="Associate Seats" onClick={() => handleAssociateClick(show.showId)} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.2 rounded-xl font-bold shadow-lg border-2 border-green-300 hover:scale-110 hover:shadow-2xl transition-all" disabled={submitting}>Associate Seats</button>
+                          {/* --- UPDATED BUTTONS SECTION --- */}
+                          <div className="flex flex-wrap gap-2 mt-4 w-full justify-center">
+                              <button title="Edit" onClick={() => handleEdit(show)} className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1.2 rounded-xl font-bold shadow-lg border-2 border-yellow-300 hover:scale-110 transition-all">Edit</button>
+                              <button title="Delete" onClick={() => handleDelete(show.showId)} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.2 rounded-xl font-bold shadow-lg border-2 border-red-300 hover:scale-110 transition-all">Delete</button>
+                              <button title="Associate Seats" onClick={() => handleAssociateClick(show.showId)} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.2 rounded-xl font-bold shadow-lg border-2 border-green-300 hover:scale-110 transition-all" disabled={submitting}>Seats</button>
+                              <button title="Associate Food" onClick={() => handleAssociateFoodClick(show)} className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.2 rounded-xl font-bold shadow-lg border-2 border-purple-300 hover:scale-110 transition-all" disabled={submitting}>Food</button>
                           </div>
                         </>
                       )}
@@ -314,6 +439,186 @@ const AdminShowList = () => {
               </div>
             </div>
           )}
+
+          {/* --- ENHANCED FOOD MANAGEMENT MODAL --- */}
+          {showFoodModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+                    <div className="text-center mb-8">
+                        <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <span className="text-3xl">🍿</span>
+                        </div>
+                        <h3 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">Manage Food Menu</h3>
+                        <p className="text-gray-600">Add delicious snacks and beverages for your show</p>
+                    </div>
+
+                    <div className="grid lg:grid-cols-2 gap-8">
+                        {/* Left Side - Add/Edit Form */}
+                        <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-200">
+                            <h4 className="font-bold text-xl mb-6 text-gray-800 flex items-center gap-3">
+                                <span className="text-2xl">✏️</span>
+                                {editingFoodId ? 'Edit Food Item' : 'Add New Food'}
+                            </h4>
+                            <form onSubmit={handleFoodSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-gray-700 font-medium mb-2">Food Name</label>
+                                    <input 
+                                        type="text" 
+                                        name="name" 
+                                        placeholder="Enter food name..." 
+                                        value={foodForm.name} 
+                                        onChange={handleFoodFormChange} 
+                                        required 
+                                        className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80" 
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-gray-700 font-medium mb-2">Price (₹)</label>
+                                    <input 
+                                        type="number" 
+                                        name="price" 
+                                        placeholder="Enter price..." 
+                                        value={foodForm.price} 
+                                        onChange={handleFoodFormChange} 
+                                        required 
+                                        className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80" 
+                                    />
+                                </div>
+                                <div className="flex gap-3 pt-2">
+                                    <button 
+                                        type="submit" 
+                                        className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl font-bold hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105" 
+                                        disabled={submitting}
+                                    >
+                                        {submitting ? 'Saving...' : editingFoodId ? 'Update Item' : 'Add Item'}
+                                    </button>
+                                    {editingFoodId && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => { setEditingFoodId(null); setFoodForm({ name: "", price: "" }); }} 
+                                            className="bg-gray-400 text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-500 transition-all duration-300"
+                                        >
+                                            Cancel
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* Right Side - Current Menu */}
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
+                            <h4 className="font-bold text-xl mb-6 text-gray-800 flex items-center gap-3">
+                                <span className="text-2xl">📋</span>
+                                Current Menu
+                            </h4>
+                            <div className="max-h-64 overflow-y-auto space-y-3">
+                                {foodItems.length > 0 ? foodItems.map(food => (
+                                    <div key={food.id} className="flex justify-between items-center p-4 bg-white/80 rounded-xl border border-green-200 shadow-sm hover:shadow-md transition-all duration-300">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl">🍽️</span>
+                                            <div>
+                                                <p className="font-semibold text-gray-800">{food.name}</p>
+                                                <p className="text-sm text-gray-600">₹{food.price}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => handleEditFood(food)} 
+                                                className="bg-yellow-400 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105"
+                                            >
+                                                ✏️ Edit
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDeleteFood(food.id)} 
+                                                className="bg-red-500 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-red-600 transition-all duration-300 transform hover:scale-105"
+                                            >
+                                                🗑️ Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <span className="text-4xl mb-4 block">🍽️</span>
+                                        <p>No food items have been added yet.</p>
+                                        <p className="text-sm">Use the form on the left to add items!</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Quick Add Section */}
+                    <div className="mt-8 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-6 border border-yellow-200">
+                        <h4 className="font-bold text-xl mb-6 text-gray-800 flex items-center gap-3">
+                            <span className="text-2xl">⚡</span>
+                            Quick Add Popular Items
+                        </h4>
+                        
+                        {/* Category Filter */}
+                        <div className="mb-4">
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {categories.map(category => (
+                                    <button
+                                        key={category}
+                                        onClick={() => setSelectedCategory(category)}
+                                        className={`px-4 py-2 rounded-full font-semibold transition-all duration-300 ${
+                                            selectedCategory === category
+                                                ? 'bg-purple-500 text-white shadow-lg'
+                                                : 'bg-white/80 text-gray-700 hover:bg-purple-100'
+                                        }`}
+                                    >
+                                        {category}
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            {/* Search */}
+                            <div className="mb-4">
+                                <input
+                                    type="text"
+                                    placeholder="Search food items..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white/80"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Food Options Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {filteredFoodOptions.map((foodOption, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => handleQuickAddFood(foodOption)}
+                                    className="bg-white/80 p-4 rounded-xl border border-yellow-200 hover:border-purple-300 transition-all duration-300 transform hover:scale-105 hover:shadow-lg group"
+                                >
+                                    <div className="text-center">
+                                        <span className="text-3xl mb-2 block group-hover:scale-110 transition-transform duration-300">
+                                            {foodOption.emoji}
+                                        </span>
+                                        <p className="font-semibold text-gray-800 text-sm mb-1">{foodOption.name}</p>
+                                        <p className="text-xs text-gray-600">₹{foodOption.suggestedPrice}</p>
+                                        <div className="mt-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                            {foodOption.category}
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end mt-8">
+                        <button 
+                            onClick={() => setShowFoodModal(false)} 
+                            className="bg-gray-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-600 transition-all duration-300 transform hover:scale-105"
+                        >
+                            Close Menu
+                        </button>
+                    </div>
+                </div>
+            </div>
+          )}
+
         </main>
       </div>
       <Footer />
